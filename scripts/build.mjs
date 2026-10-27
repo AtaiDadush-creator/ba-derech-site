@@ -273,7 +273,9 @@ await writeFile(join(DIST, ".nojekyll"), "");
 for (const file of await walk(DIST)) {
   if (extname(file) !== ".html") continue;
   const parts = relative(DIST, file).split(sep);
-  const base = parts.length > 1 ? "../".repeat(parts.length - 1) : "";
+  // 404.html is served at whatever path was asked for (/a/b/c/), so its links start from the site root.
+  // That works on the real domain, where the site sits at the root.
+  const base = parts.join("/") === "404.html" ? "/" : parts.length > 1 ? "../".repeat(parts.length - 1) : "";
   const route = parts.slice(0, -1).map((s) => s + "/").join(""); // "" for home, "method/" for method/index.html
   let html = await readFile(file, "utf8");
   // Partials may include other partials, so expand a few levels deep.
