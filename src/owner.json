@@ -1,5 +1,5 @@
 {
-  "_note": "Facts only the owner knows. null = still missing: the build shows a yellow placeholder on the preview, and refuses to build for the real domain (src/CNAME present) until every value is filled.",
+  "_note": "Facts only the owner knows. null = still missing: the build shows a yellow placeholder on the preview, and refuses to build for the real domain (src/CNAME present) until every value is filled. Exception: leadsEndpoint may stay null; then the contact form opens WhatsApp with the details. After deploying the Apps Script (docs/LEADS-SETUP.md), paste its /exec URL here.",
   "legalName": "עתיי דעדוש",
   "businessType": "עוסק מורשה",
   "businessId": "328510904",
@@ -17,5 +17,6 @@
   "accessibilityReplyDays": "7",
   "accessibilityTested": "באוקטובר 2026, אחרי עדכון האתר, בדקנו שוב את כל עמודי האתר בכלי axe לפי WCAG 2.1 ברמה AA, במצב בהיר ובמצב כהה, בדפדפני Chrome ו-Safari, בטלפון, בטאבלט ובמחשב, כולל ניווט במקלדת והפחתת תנועה.",
   "studentsAsOf": "אוקטובר 2026",
-  "updated": "27/10/2026"
+  "updated": "27/10/2026",
+  "leadsEndpoint": null
 }

@@ -4,6 +4,9 @@
 // - expands <!--#include name--> from src/_partials/ and {{base}} (relative path to the site root),
 // - turns each data-wa message into a wa.me link and tells screen readers that it opens WhatsApp,
 // - turns each data-share message into a WhatsApp share link with no number (the visitor picks the recipient),
+// - renders quotes (src/testimonials.json) and teacher cards (src/teachers.json) into <!--#if key--> blocks,
+//   drops a block and every link inside such markers when it has fewer than 3 approved items, and fails on a doubtful item,
+// - fills {{leadsEndpoint}} (empty = the form opens WhatsApp), {{home}}, and aria-current from data-route,
 // - adds noindex until the real domain is set (src/CNAME), points share previews at the preview address meanwhile,
 //   and refuses a real-domain build with missing facts,
 // - fails on known content problems.
@@ -11,7 +14,8 @@ import { cp, mkdir, readdir, readFile, rm, writeFile, access } from "node:fs/pro
 import { join, extname, relative, sep } from "node:path";
 
 const SRC = "src";
-const DIST = "dist";
+const DIST = process.env.SITE_DIST || "dist"; // tests build fixtures into a temporary folder
+const DATA = process.env.SITE_DATA || SRC;    // where testimonials.json and teachers.json are read from
 const PHONE = "972559897869";
 const SHARE = "https://wa.me/?text=";
 const problems = [];
@@ -20,6 +24,17 @@ const missing = new Set();
 const owner = JSON.parse(await readFile(join(SRC, "owner.json"), "utf8"));
 const live = await access(join(SRC, "CNAME")).then(() => true, () => false);
 const PREVIEW = "https://ataidadush-creator.github.io/ba-derech-site/";
+// The form endpoint is optional: null means the form opens WhatsApp with the details (not a missing fact).
+const ENDPOINT_RE = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]{20,}\/exec$/;
+const endpoint = (() => {
+  const v = owner.leadsEndpoint;
+  if (v === null || v === undefined || v === "") return "";
+  if (typeof v !== "string" || !ENDPOINT_RE.test(v)) {
+    problems.push(`owner.json leadsEndpoint must be an Apps Script web app URL ending in /exec, or null: ${v}`);
+    return "";
+  }
+  return v;
+})();
 
 // Hebrew placeholder shown on previews while a fact is missing.
 const LABELS = {
@@ -73,6 +88,8 @@ function checkHtml(file, html) {
   const msgs = [...html.matchAll(/data-wa="([^"]*)"/g)].map((m) => m[1]);
   const dupMsg = msgs.filter((m, i) => msgs.indexOf(m) !== i);
   if (dupMsg.length) problems.push(`${file}: the same WhatsApp message is used twice: ${dupMsg[0]}`);
+  if (/<!--#if |<!--\/if |<!--items /.test(html)) problems.push(`${file}: unmatched data block marker`);
+  if (/\sdata-route=/.test(html)) problems.push(`${file}: data-route left in the page`);
 }
 
 function addWhatsAppLinks(html) {
@@ -95,18 +112,151 @@ for (const f of await readdir(join(SRC, "_partials")).catch(() => [])) {
   partials[f.replace(/\.html$/, "")] = await readFile(join(SRC, "_partials", f), "utf8");
 }
 
+// ---------- Quotes and teacher cards ----------
+// The repo is public: these files hold only what may appear on the site. Names and consent proof stay private, by ref.
+const MIN_ITEMS = 3;
+const MONTHS = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
+const SOURCES = { whatsapp: "בוואטסאפ", email: "במייל", form: "בטופס באתר" };
+const WHO = {
+  parent: /^(אמא|אבא|הורה|סבתא|סבא) של (תלמיד|תלמידה) בכיתה [וזחט]׳$/,
+  teacher: /^מורה בבדרך הנכונה$/,
+};
+const T_KEYS = ["ref", "audience", "quote", "who", "date", "source", "consent", "rewarded", "rewardNote"];
+const M_KEYS = ["ref", "name", "role", "grades", "line", "photo", "consent"];
+const GRADES = ["ו", "ז", "ח", "ט"];
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+async function readItems(name) {
+  const raw = await readFile(join(DATA, name), "utf8").catch(() => null);
+  if (raw === null) { problems.push(`${name}: missing (an empty list is {"items": []})`); return []; }
+  let json;
+  try { json = JSON.parse(raw); } catch (e) { problems.push(`${name}: not valid JSON (${e.message})`); return []; }
+  if (!json || !Array.isArray(json.items)) { problems.push(`${name}: needs {"items": [...]}`); return []; }
+  return json.items;
+}
+
+function checkText(where, s, min, max) {
+  if (typeof s !== "string") return [`${where}: must be text`];
+  const t = s.trim(), out = [];
+  if (t.length < min || t.length > max) out.push(`${where}: ${t.length} characters, allowed ${min} to ${max}`);
+  if (t.includes("—")) out.push(`${where}: em dash (U+2014)`);
+  if (t.includes("נסיון")) out.push(`${where}: spelling "נסיון" (use "ניסיון")`);
+  if (/\d[\d\s-]{6,}\d/.test(t)) out.push(`${where}: looks like a phone number`);
+  if (/₪|ש[״"]ח/.test(t)) out.push(`${where}: a price`);
+  if (/@|https?:|www\./i.test(t)) out.push(`${where}: an email address or a link`);
+  if (/[<>{}]/.test(t)) out.push(`${where}: < > { or }`);
+  return out;
+}
+
+const unknownKeys = (where, item, allowed) =>
+  Object.keys(item).filter((k) => !allowed.includes(k)).map((k) => `${where}: unknown field "${k}" (personal details never go in the repo)`);
+
+function validTestimonials(items) {
+  const ok = [], refs = new Set(), now = new Date().toISOString().slice(0, 7);
+  items.forEach((t, i) => {
+    const w = `testimonials.json item ${i + 1}${t && t.ref ? ` (${t.ref})` : ""}`;
+    if (!t || typeof t !== "object" || Array.isArray(t)) { problems.push(`${w}: not an object`); return; }
+    const p = [
+      ...unknownKeys(w, t, T_KEYS),
+      ...(/^T\d{2,3}$/.test(t.ref || "") ? [] : [`${w}: ref must look like T01`]),
+      ...(refs.has(t.ref) ? [`${w}: duplicate ref`] : []),
+      ...(has(WHO, t.audience) ? [] : [`${w}: audience must be parent or teacher`]),
+      ...checkText(`${w} quote`, t.quote, 20, 320),
+      ...(has(WHO, t.audience) && WHO[t.audience].test(t.who || "") ? [] : [`${w}: who "${t.who}" is not an allowed label`]),
+      ...(/^\d{4}-(0[1-9]|1[0-2])$/.test(t.date || "") && t.date <= now ? [] : [`${w}: date must be YYYY-MM and not in the future`]),
+      ...(has(SOURCES, t.source) ? [] : [`${w}: source must be whatsapp, email or form`]),
+      ...(t.consent === true ? [] : [`${w}: consent must be true (the proof stays private, by ref)`]),
+      ...(typeof t.rewarded === "boolean" ? [] : [`${w}: rewarded must be true or false`]),
+      ...(t.rewarded === true ? checkText(`${w} rewardNote`, t.rewardNote, 5, 80) : []),
+    ];
+    refs.add(t.ref);
+    if (p.length) problems.push(...p); else ok.push(t);
+  });
+  return ok;
+}
+
+async function validTeachers(items) {
+  const ok = [], refs = new Set();
+  for (const [i, m] of items.entries()) {
+    const w = `teachers.json item ${i + 1}${m && m.ref ? ` (${m.ref})` : ""}`;
+    if (!m || typeof m !== "object" || Array.isArray(m)) { problems.push(`${w}: not an object`); continue; }
+    const p = [
+      ...unknownKeys(w, m, M_KEYS),
+      ...(/^M\d{2}$/.test(m.ref || "") ? [] : [`${w}: ref must look like M01`]),
+      ...(refs.has(m.ref) ? [`${w}: duplicate ref`] : []),
+      ...checkText(`${w} name`, m.name, 2, 30),
+      ...(/^[א-ת'׳".\s-]+$/.test(m.name || "") ? [] : [`${w}: name in Hebrew letters`]),
+      ...checkText(`${w} role`, m.role, 4, 40),
+      ...(Array.isArray(m.grades) && m.grades.length && m.grades.every((g) => GRADES.includes(g)) && new Set(m.grades).size === m.grades.length
+        ? [] : [`${w}: grades must be a list like ["ז", "ח"]`]),
+      ...checkText(`${w} line`, m.line, 20, 160),
+      ...(m.consent === true ? [] : [`${w}: consent must be true (the proof stays private, by ref)`]),
+    ];
+    if (m.photo !== undefined && m.photo !== null) {
+      if (!/^[a-z0-9-]+\.(jpg|webp)$/.test(String(m.photo))) p.push(`${w}: photo must be a file name like dana.jpg`);
+      else if (!(await access(join(SRC, "assets", "img", "teachers", m.photo)).then(() => true, () => false))) p.push(`${w}: photo not found in src/assets/img/teachers/`);
+    }
+    refs.add(m.ref);
+    if (p.length) problems.push(...p); else ok.push(m);
+  }
+  return ok;
+}
+
+const monthLabel = (ym) => `${MONTHS[Number(ym.slice(5)) - 1]} ${ym.slice(0, 4)}`;
+
+function gradesLabel(gs) {
+  const idx = gs.map((g) => GRADES.indexOf(g)).sort((a, b) => a - b);
+  const names = idx.map((i) => GRADES[i] + "׳");
+  if (names.length === 1) return `כיתה ${names[0]}`;
+  const run = idx.every((v, k) => k === 0 || v === idx[k - 1] + 1);
+  return run ? `כיתות ${names[0]} עד ${names[names.length - 1]}` : `כיתות ${names.slice(0, -1).join(", ")} ו${names[names.length - 1]}`;
+}
+
+const voiceCard = (t) =>
+  `<li class="voice rv"><figure><blockquote><p>${esc(t.quote.trim())}</p></blockquote>` +
+  `<figcaption><b>${esc(t.who)}</b><span>${monthLabel(t.date)}, ${SOURCES[t.source]}</span>` +
+  `${t.rewarded ? `<span>${esc(t.rewardNote.trim())}</span>` : ""}</figcaption></figure></li>`;
+
+const teacherCard = (m) =>
+  `<li class="tcard rv">` +
+  (m.photo
+    ? `<img class="tcard-img" src="{{base}}assets/img/teachers/${m.photo}" alt="" width="480" height="480" loading="lazy">`
+    : `<span class="tcard-img tcard-init" aria-hidden="true">${esc(m.name.trim()[0])}</span>`) +
+  `<h3>${esc(m.name.trim())}</h3><p class="tcard-role">${esc(m.role.trim())}, ${gradesLabel(m.grades)}</p><p>${esc(m.line.trim())}</p></li>`;
+
+const quotes = validTestimonials(await readItems("testimonials.json"));
+const team = await validTeachers(await readItems("teachers.json"));
+const BLOCKS = {
+  "voices-parent": quotes.filter((t) => t.audience === "parent").map(voiceCard),
+  "voices-teacher": quotes.filter((t) => t.audience === "teacher").map(voiceCard),
+  team: team.map(teacherCard),
+};
+
+// <!--#if key-->...<!--/if key-->: kept (with <!--items key--> filled) only when the key has MIN_ITEMS or more.
+// Runs before checkHtml, so a link left pointing at a dropped section fails the build.
+function expandBlocks(file, html) {
+  return html.replace(/<!--#if ([\w-]+)-->([\s\S]*?)<!--\/if \1-->/g, (m, key, inner) => {
+    if (!has(BLOCKS, key)) { problems.push(`${file}: unknown block ${key}`); return ""; }
+    if (BLOCKS[key].length < MIN_ITEMS) return "";
+    return inner.split(`<!--items ${key}-->`).join(BLOCKS[key].join(""));
+  });
+}
+
 await rm(DIST, { recursive: true, force: true });
 await mkdir(DIST, { recursive: true });
+const PRIVATE = ["owner.json", "testimonials.json", "teachers.json"];
 await cp(SRC, DIST, {
   recursive: true,
-  filter: (p) => !p.endsWith("owner.json") && !p.split(sep).includes("_partials"),
+  filter: (p) => !PRIVATE.some((f) => p.endsWith(sep + f)) && !p.split(sep).includes("_partials"),
 });
 await writeFile(join(DIST, ".nojekyll"), "");
 
 for (const file of await walk(DIST)) {
   if (extname(file) !== ".html") continue;
-  const depth = relative(DIST, file).split(sep).length - 1;
-  const base = depth ? "../".repeat(depth) : "";
+  const parts = relative(DIST, file).split(sep);
+  const base = parts.length > 1 ? "../".repeat(parts.length - 1) : "";
+  const route = parts.slice(0, -1).map((s) => s + "/").join(""); // "" for home, "method/" for method/index.html
   let html = await readFile(file, "utf8");
   // Partials may include other partials, so expand a few levels deep.
   for (let level = 0; level < 3 && html.includes("<!--#include "); level++) {
@@ -115,10 +265,14 @@ for (const file of await walk(DIST)) {
       return partials[name].trim();
     });
   }
+  html = expandBlocks(file, html);
   html = html
     .replace(/\{\{base\}\}/g, base)
+    .replace(/\{\{home\}\}/g, base || "./")
+    .replace(/\{\{leadsEndpoint\}\}/g, () => endpoint)
     .replace(/\{\{owner:(\w+)\}\}/g, (m, key) => fact(key))
-    .replace(/\{\{(vat)\}\}/g, (m, name) => special(name));
+    .replace(/\{\{(vat)\}\}/g, (m, name) => special(name))
+    .replace(/ data-route="([^"]*)"/g, (m, r) => (r === route ? ' aria-current="page"' : ""));
   if (!live && !html.includes('name="robots"')) {
     html = html.replace("</title>", '</title>\n<meta name="robots" content="noindex">');
   }
@@ -137,4 +291,5 @@ if (problems.length) {
   console.error("Build failed:\n- " + problems.join("\n- "));
   process.exit(1);
 }
+console.log(`Data: ${BLOCKS["voices-parent"].length} parent quotes, ${BLOCKS["voices-teacher"].length} teacher quotes, ${BLOCKS.team.length} teacher cards (each block shows at ${MIN_ITEMS} or more). Form: ${endpoint ? "Apps Script" : "WhatsApp fallback"}.`);
 console.log(`Built dist/ (${live ? "real domain" : "preview, noindex"})`);
