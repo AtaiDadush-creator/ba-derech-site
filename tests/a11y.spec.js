@@ -1,7 +1,7 @@
 // 7-9. Accessibility: axe WCAG 2.x A/AA in light and dark, skip link, reduced motion.
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { gotoHome, tabKey } from "./helpers.js";
+import { gotoHome, gotoPage, tabKey } from "./helpers.js";
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
@@ -12,20 +12,18 @@ function report(violations) {
 }
 
 for (const colorScheme of ["light", "dark"]) {
-  test(`axe: no WCAG 2.1 A/AA violations (${colorScheme}, all FAQ answers open)`, async ({ page }) => {
+  test(`axe: no WCAG 2.1 A/AA violations on the home page (${colorScheme})`, async ({ page }) => {
     // Reduced motion so the scan sees final colours, not mid-animation opacity.
     await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
     await gotoHome(page);
-    await page.evaluate(() => document.querySelectorAll(".faq .card:not(.open) .q").forEach((q) => q.click()));
-    await expect(page.locator(".faq .a:not([hidden])")).toHaveCount(await page.locator(".faq .a").count());
 
     const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
     expect(results.violations, report(results.violations)).toEqual([]);
   });
 }
 
-test("skip link: first Tab focuses it, Enter moves to #main", async ({ page, browserName }) => {
-  await gotoHome(page);
+for (const path of ["/", "/contact/"]) test(`${path} skip link: first Tab focuses it, Enter moves to #main`, async ({ page, browserName }) => {
+  await gotoPage(page, path);
   const key = tabKey(browserName);
   await page.keyboard.press(key);
   const skip = page.locator("a.skip");

@@ -1,6 +1,6 @@
 // 4. Content rules: built HTML text rules, document language and direction, headings, in-page links.
 import { test, expect } from "@playwright/test";
-import { builtHtml, gotoHome } from "./helpers.js";
+import { ALL, builtHtml, gotoPage } from "./helpers.js";
 
 test.describe("built HTML files", () => {
   const files = builtHtml();
@@ -27,9 +27,9 @@ test.describe("built HTML files", () => {
   });
 });
 
-test.describe("rendered page", () => {
+for (const path of ALL) test.describe(`rendered page ${path}`, () => {
   test("html lang=he dir=rtl, exactly one h1", async ({ page }) => {
-    await page.goto("/");
+    await page.goto(path);
     await expect(page.locator("html")).toHaveAttribute("lang", "he");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(page.locator("h1")).toHaveCount(1);
@@ -37,14 +37,14 @@ test.describe("rendered page", () => {
   });
 
   test("in-page links resolve in the DOM", async ({ page }) => {
-    await page.goto("/");
+    await page.goto(path);
     const missing = await page.evaluate(() =>
       [...document.querySelectorAll('a[href^="#"]')].map((a) => a.getAttribute("href").slice(1)).filter((id) => !id || !document.getElementById(id)));
     expect(missing).toEqual([]);
   });
 
   test("every h2 renders in at most two lines", async ({ page }) => {
-    await gotoHome(page);
+    await gotoPage(page, path);
     const heads = await page.evaluate(() =>
       [...document.querySelectorAll("h2")].map((h) => {
         const cs = getComputedStyle(h);
