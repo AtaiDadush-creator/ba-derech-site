@@ -12,7 +12,7 @@
   "onceWeeklyPlans": "במנוי חודשי בלבד",
   "cancellationFee": "5% מסכום העסקה או 100 ₪, הנמוך מביניהם",
   "retention": "כל עוד הילד לומד אצלנו ועוד שנה אחרי שסיים",
-  "processors": "WhatsApp, Zoom ו-Google (Workspace ו-Drive)",
+  "processors": "Google, WhatsApp ו-Zoom, וכלי ניהול, אוטומציה ובינה מלאכותית שמסייעים לנו לטפל בפניות",
   "accessibilityContact": "עתיי דעדוש",
   "accessibilityReplyDays": "7",
   "accessibilityTested": "באוקטובר 2026, אחרי בניית האתר מחדש, בדקנו את כל עמודי האתר, כולל הטופס, בכלי axe לפי WCAG 2.1 ברמה AA, במצב בהיר ובמצב כהה, בדפדפני Chrome ו-Safari, בטלפון, בטאבלט ובמחשב, כולל ניווט במקלדת והפחתת תנועה.",
