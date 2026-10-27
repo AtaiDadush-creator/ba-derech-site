@@ -3,7 +3,8 @@
 // - fills {{owner:key}} facts from src/owner.json (missing ones become a visible placeholder on previews),
 // - expands <!--#include name--> from src/_partials/ and {{base}} (relative path to the site root),
 // - turns each data-wa message into a wa.me link and tells screen readers that it opens WhatsApp,
-// - adds noindex until the real domain is set (src/CNAME), and refuses a real-domain build with missing facts,
+// - adds noindex until the real domain is set (src/CNAME), points share previews at the preview address meanwhile,
+//   and refuses a real-domain build with missing facts,
 // - fails on known content problems.
 import { cp, mkdir, readdir, readFile, rm, writeFile, access } from "node:fs/promises";
 import { join, extname, relative, sep } from "node:path";
@@ -16,13 +17,14 @@ const missing = new Set();
 
 const owner = JSON.parse(await readFile(join(SRC, "owner.json"), "utf8"));
 const live = await access(join(SRC, "CNAME")).then(() => true, () => false);
+const PREVIEW = "https://ataidadush-creator.github.io/ba-derech-site/";
 
 // Hebrew placeholder shown on previews while a fact is missing.
 const LABELS = {
   legalName: "שם בעל העסק", businessType: "עוסק מורשה / עוסק פטור / חברה", businessId: "מספר עוסק", address: "כתובת למכתבים",
   email: "מייל העסק", annualMonths: "מספר חודשים", lessonsPerMonth: "מספר שיעורים בחודש", paymentMethod: "אמצעי ומועד החיוב",
-  holidays: "מה קורה בחופשות", cancelledLesson: "השלמה או זיכוי", onceWeeklyPlans: "באילו מסלולים", earlyExit: "תנאי יציאה מוקדמת",
-  cancellationFee: "דמי ביטול: כן או לא", helpHours: "ימים ושעות למענה", recordings: "מה מוקלט ולמה", retention: "כמה זמן שומרים",
+  cancelledLesson: "השלמה או זיכוי", onceWeeklyPlans: "באילו מסלולים",
+  cancellationFee: "דמי ביטול: כן או לא", retention: "כמה זמן שומרים",
   processors: "ספקי שירות", accessibilityContact: "אחראי נגישות", accessibilityReplyDays: "מספר", accessibilityTested: "איך ומתי נבדק",
   studentsAsOf: "חודש ושנה", updated: "תאריך",
 };
@@ -116,6 +118,8 @@ for (const file of await walk(DIST)) {
   if (!live && !html.includes('name="robots"')) {
     html = html.replace("</title>", '</title>\n<meta name="robots" content="noindex">');
   }
+  // Until the domain points here, a shared link must preview from the address that actually serves the image.
+  if (!live) html = html.replace(/(<meta (?:property|name)="(?:og:url|og:image|twitter:image)" content=")https:\/\/ba-derech\.com\//g, `$1${PREVIEW}`);
   checkHtml(file, html);
   await writeFile(file, addWhatsAppLinks(html));
 }
