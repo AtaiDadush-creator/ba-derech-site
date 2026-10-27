@@ -19,7 +19,7 @@
   "processors": "WhatsApp, Zoom ו-Google (Workspace ו-Drive)",
   "accessibilityContact": "עתיי דעדוש",
   "accessibilityReplyDays": null,
-  "accessibilityTested": null,
+  "accessibilityTested": "באוקטובר 2026 בדקנו את כל עמודי האתר בכלי axe לפי WCAG 2.1 ברמה AA, במצב בהיר ובמצב כהה, בדפדפני Chrome ו-Safari, בטלפון, בטאבלט ובמחשב, כולל ניווט במקלדת והפחתת תנועה.",
   "studentsAsOf": "אוקטובר 2026",
   "updated": "27/10/2026"
 }
