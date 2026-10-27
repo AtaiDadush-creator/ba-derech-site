@@ -1,9 +1,9 @@
 // Full-page screenshots of every page at phone and desktop width, light and dark, into shots/ (for a quick visual check).
-// Usage: npm run build && node scripts/serve.mjs & node scripts/shots.mjs
+// Usage: npm run build && node scripts/serve.mjs & node scripts/shots.mjs [base URL, default the local server]
 import { chromium, webkit, devices } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 
-const BASE = "http://localhost:4173/";
+const BASE = process.argv[2] || "http://localhost:4173/";
 const PAGES = ["", "terms/", "privacy/", "accessibility/"];
 const RUNS = [
   { name: "phone", engine: webkit, context: { ...devices["iPhone 13"] } },
