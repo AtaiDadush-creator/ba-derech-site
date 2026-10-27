@@ -21,26 +21,29 @@ Edit files in `src/` only. WhatsApp links are written as `<a class="btn wa" data
 
 ## Quotes and teacher cards
 
-`src/testimonials.json` (quotes) and `src/teachers.json` (teacher cards) hold only what may appear on the site: the repo is public. Real names, screenshots and the written consent stay in the owner's private sheet, matched by `ref`. Both files start as `{"items": []}`.
+`src/testimonials.json` (quotes) and `src/teachers.json` (teacher cards) hold only what may appear on the site. The repo is public and git keeps every past version, so an item goes in only after written consent: deleting it later does not erase it from history. The original text, a screenshot of the consent and its date stay 7 years in the owner's private sheet, matched by `ref`, never in the repo. Both files start as `{"items": []}`, and their `_note` holds the consent request to send.
 
 A quote (`testimonials.json`):
 - `ref`: T and 2 or 3 digits, unique.
 - `audience`: `parent` (shown on the home page) or `teacher` (shown on the teach page).
-- `quote`: 20 to 320 characters, as written (shortened only without changing the meaning). No em dash (U+2014), no "נסיון", no phone number, price, email, link, `<`, `>`, `{` or `}`.
-- `who`: for a parent only `(אמא|אבא|הורה|סבתא|סבא) של (תלמיד|תלמידה) בכיתה [וזחט]׳`; for a teacher only `מורה בבדרך הנכונה`.
-- `date`: `YYYY-MM`, not in the future. Shown as "נובמבר 2026".
-- `source`: `whatsapp`, `email` or `form`. Shown as "בוואטסאפ", "במייל", "בטופס באתר".
-- `consent`: `true`.
-- `rewarded`: `true` or `false`. If `true`, `rewardNote` (5 to 80 characters) is required and shown next to the quote.
-- Any other field (a name, a child's name, video, phone) fails the build.
+- `quote`: 20 to 320 characters, as written. No em dash (U+2014), no "נסיון", no phone number, price, email, link, `<`, `>`, `{` or `}`.
+  - A parent quote also has no diagnosis, health or therapy detail (אבחון, אבחנה, ADHD, קשב, דיסלקציה, לקות, תרופה, ריטלין, חרדה, אוטיזם, פסיכולוג) and no result claim: no digit, %, ציון, שיפור, קפיצה or מצטיין.
+  - A teacher quote has no credential, rank, years, pay or number (מוסמך, תואר, בוגר, מומחה, מצטיין, הטוב, שנות, שכר, הכנסה, מרוויח, any digit).
+- The label is fixed, not per item: every parent quote shows "הורה לתלמיד או לתלמידה בכיתות ו׳ עד ט׳", every teacher quote "מורה בבדרך הנכונה". An old `who` field is ignored.
+- `date`: `YYYY-MM` of the message, not in the future. Shown as the year only.
+- `source`: `whatsapp` or `email`. Shown as "בוואטסאפ" or "במייל". Never the site form: a form lead gets replies only.
+- `consent`: `true`. `consentDate`: the day of the written consent, `YYYY-MM-DD`, not in the future.
+- `shortened`: `true` or `false`. If `true`, "(בקיצור)" shows next to the year.
+- `rewarded`: `true` or `false`, true for any discount, free lesson, gift or draw given for the quote. If `true`, `rewardNote` (5 to 80 characters) is required and shown next to the quote.
+- Any other field (a name, a child's name, video, phone) fails the build. The site has no Review or Rating structured data.
 
 A teacher card (`teachers.json`):
 - `ref`: M and 2 digits, unique.
 - `name`: 2 to 30 characters, Hebrew letters, space, geresh, period or hyphen. First or full name, as the teacher approved.
-- `role`: 4 to 40 characters.
+- `role`: 4 to 40 characters, no credential, rank, years, pay or number (the teacher-quote rule above).
 - `grades`: a non-empty list from ו, ז, ח, ט, no repeats. Shown as "כיתה ח׳", "כיתות ז׳ עד ט׳" or "כיתות ו׳ וח׳".
-- `line`: 20 to 160 characters, same text rules as `quote`.
-- `photo`: optional. A file name in lowercase letters, digits and hyphens, `.jpg` or `.webp`, that exists in `src/assets/img/teachers/`. Square, at least 480 by 480, no children and no lesson screen. Without a photo the card shows the first letter of the name.
+- `line`: 20 to 160 characters, same text rules as a teacher quote.
+- `photo`: optional, and only with `photoConsent: true` (a separate consent to the photo); a photo without it fails the build. A file name in lowercase letters, digits and hyphens, `.jpg` or `.webp`, that exists in `src/assets/img/teachers/`. Square, at least 480 by 480, no children and no lesson screen. Without a photo the card shows the first letter of the name.
 - `consent`: `true`.
 - No age, degrees, years of experience or rating: any other field fails the build.
 

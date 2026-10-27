@@ -114,16 +114,21 @@ for (const f of await readdir(join(SRC, "_partials")).catch(() => [])) {
 }
 
 // ---------- Quotes and teacher cards ----------
-// The repo is public: these files hold only what may appear on the site. Names and consent proof stay private, by ref.
+// The repo is public and git keeps history: these files hold only what may appear on the site.
+// Names, screenshots and the written consent stay in the owner's private sheet, by ref.
 const MIN_ITEMS = 3;
-const MONTHS = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
-const SOURCES = { whatsapp: "בוואטסאפ", email: "במייל", form: "בטופס באתר" };
-const WHO = {
-  parent: /^(אמא|אבא|הורה|סבתא|סבא) של (תלמיד|תלמידה) בכיתה [וזחט]׳$/,
-  teacher: /^מורה בבדרך הנכונה$/,
-};
-const T_KEYS = ["ref", "audience", "quote", "who", "date", "source", "consent", "rewarded", "rewardNote"];
-const M_KEYS = ["ref", "name", "role", "grades", "line", "photo", "consent"];
+// No "form" source: a form lead gets replies only, so its words are not used as a quote.
+const SOURCES = { whatsapp: "בוואטסאפ", email: "במייל" };
+// One fixed label per audience, shown with the year only: a gender, a grade or a month could identify a child.
+// An old per-item "who" is accepted and ignored.
+const LABEL = { parent: "הורה לתלמיד או לתלמידה בכיתות ו׳ עד ט׳", teacher: "מורה בבדרך הנכונה" };
+// A parent quote never carries health or diagnosis details, nor a result claim (a number, a grade, an improvement).
+const SENSITIVE = /אבחון|אבחנה|ADHD|קשב|דיסלקצ|לקות|תרופ|ריטלין|חרדה|אוטיז|פסיכולוג/i;
+const RESULTS = /\d|%|ציון|שיפור|קפיצה|מצטיין/;
+// Teacher cards and teacher quotes never claim credentials, years, rank or pay.
+const CLAIMS = /מוסמכ|תואר|בוגר|מומחה|מצטיין|הטוב|שנות|שכר|הכנסה|מרוויח|\d/;
+const T_KEYS = ["ref", "audience", "quote", "who", "date", "source", "consent", "consentDate", "shortened", "rewarded", "rewardNote"];
+const M_KEYS = ["ref", "name", "role", "grades", "line", "photo", "photoConsent", "consent"];
 const GRADES = ["ו", "ז", "ח", "ט"];
 const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -153,21 +158,30 @@ function checkText(where, s, min, max) {
 const unknownKeys = (where, item, allowed) =>
   Object.keys(item).filter((k) => !allowed.includes(k)).map((k) => `${where}: unknown field "${k}" (personal details never go in the repo)`);
 
+// A real calendar day in YYYY-MM-DD, not after today.
+const pastDay = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T00:00:00Z`))
+  && new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s && s <= new Date().toISOString().slice(0, 10);
+
 function validTestimonials(items) {
   const ok = [], refs = new Set(), now = new Date().toISOString().slice(0, 7);
   items.forEach((t, i) => {
     const w = `testimonials.json item ${i + 1}${t && t.ref ? ` (${t.ref})` : ""}`;
     if (!t || typeof t !== "object" || Array.isArray(t)) { problems.push(`${w}: not an object`); return; }
+    const quote = typeof t.quote === "string" ? t.quote : "";
     const p = [
       ...unknownKeys(w, t, T_KEYS),
       ...(/^T\d{2,3}$/.test(t.ref || "") ? [] : [`${w}: ref must look like T01`]),
       ...(refs.has(t.ref) ? [`${w}: duplicate ref`] : []),
-      ...(has(WHO, t.audience) ? [] : [`${w}: audience must be parent or teacher`]),
+      ...(has(LABEL, t.audience) ? [] : [`${w}: audience must be parent or teacher`]),
       ...checkText(`${w} quote`, t.quote, 20, 320),
-      ...(has(WHO, t.audience) && WHO[t.audience].test(t.who || "") ? [] : [`${w}: who "${t.who}" is not an allowed label`]),
+      ...(t.audience === "parent" && SENSITIVE.test(quote) ? [`${w} quote: a diagnosis, health or therapy detail (never in a quote)`] : []),
+      ...(t.audience === "parent" && RESULTS.test(quote) ? [`${w} quote: a result claim (a digit, %, ציון, שיפור, קפיצה or מצטיין)`] : []),
+      ...(t.audience === "teacher" && CLAIMS.test(quote) ? [`${w} quote: a credential, rank, years, pay or a number`] : []),
       ...(/^\d{4}-(0[1-9]|1[0-2])$/.test(t.date || "") && t.date <= now ? [] : [`${w}: date must be YYYY-MM and not in the future`]),
-      ...(has(SOURCES, t.source) ? [] : [`${w}: source must be whatsapp, email or form`]),
+      ...(has(SOURCES, t.source) ? [] : [`${w}: source must be whatsapp or email`]),
       ...(t.consent === true ? [] : [`${w}: consent must be true (the proof stays private, by ref)`]),
+      ...(pastDay(t.consentDate) ? [] : [`${w}: consentDate must be the day of the written consent, YYYY-MM-DD, not in the future`]),
+      ...(typeof t.shortened === "boolean" ? [] : [`${w}: shortened must be true or false (true shows "(בקיצור)")`]),
       ...(typeof t.rewarded === "boolean" ? [] : [`${w}: rewarded must be true or false`]),
       ...(t.rewarded === true ? checkText(`${w} rewardNote`, t.rewardNote, 5, 80) : []),
     ];
@@ -189,12 +203,16 @@ async function validTeachers(items) {
       ...checkText(`${w} name`, m.name, 2, 30),
       ...(/^[א-ת'׳".\s-]+$/.test(m.name || "") ? [] : [`${w}: name in Hebrew letters`]),
       ...checkText(`${w} role`, m.role, 4, 40),
+      ...(typeof m.role === "string" && CLAIMS.test(m.role) ? [`${w} role: a credential, rank, years, pay or a number`] : []),
       ...(Array.isArray(m.grades) && m.grades.length && m.grades.every((g) => GRADES.includes(g)) && new Set(m.grades).size === m.grades.length
         ? [] : [`${w}: grades must be a list like ["ז", "ח"]`]),
       ...checkText(`${w} line`, m.line, 20, 160),
+      ...(typeof m.line === "string" && CLAIMS.test(m.line) ? [`${w} line: a credential, rank, years, pay or a number`] : []),
       ...(m.consent === true ? [] : [`${w}: consent must be true (the proof stays private, by ref)`]),
+      ...(m.photoConsent === undefined || typeof m.photoConsent === "boolean" ? [] : [`${w}: photoConsent must be true or false`]),
     ];
     if (m.photo !== undefined && m.photo !== null) {
+      if (m.photoConsent !== true) p.push(`${w}: a photo needs photoConsent: true (a separate, written consent to the photo)`);
       if (!/^[a-z0-9-]+\.(jpg|webp)$/.test(String(m.photo))) p.push(`${w}: photo must be a file name like dana.jpg`);
       else if (!(await access(join(SRC, "assets", "img", "teachers", m.photo)).then(() => true, () => false))) p.push(`${w}: photo not found in src/assets/img/teachers/`);
     }
@@ -203,8 +221,6 @@ async function validTeachers(items) {
   }
   return ok;
 }
-
-const monthLabel = (ym) => `${MONTHS[Number(ym.slice(5)) - 1]} ${ym.slice(0, 4)}`;
 
 function gradesLabel(gs) {
   const idx = gs.map((g) => GRADES.indexOf(g)).sort((a, b) => a - b);
@@ -216,12 +232,13 @@ function gradesLabel(gs) {
 
 const voiceCard = (t) =>
   `<li class="voice rv"><figure><blockquote><p>${esc(t.quote.trim())}</p></blockquote>` +
-  `<figcaption><b>${esc(t.who)}</b><span>${monthLabel(t.date)}, ${SOURCES[t.source]}</span>` +
+  `<figcaption><b>${LABEL[t.audience]}</b><span>${t.date.slice(0, 4)}, ${SOURCES[t.source]}${t.shortened ? " (בקיצור)" : ""}</span>` +
   `${t.rewarded ? `<span>${esc(t.rewardNote.trim())}</span>` : ""}</figcaption></figure></li>`;
 
+// A photo only with photoConsent (validation already fails a photo without it); otherwise the first letter of the name.
 const teacherCard = (m) =>
   `<li class="tcard rv">` +
-  (m.photo
+  (m.photo && m.photoConsent === true
     ? `<img class="tcard-img" src="{{base}}assets/img/teachers/${m.photo}" alt="" width="480" height="480" loading="lazy">`
     : `<span class="tcard-img tcard-init" aria-hidden="true">${esc(m.name.trim()[0])}</span>`) +
   `<h3>${esc(m.name.trim())}</h3><p class="tcard-role">${esc(m.role.trim())}, ${gradesLabel(m.grades)}</p><p>${esc(m.line.trim())}</p></li>`;

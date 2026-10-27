@@ -680,9 +680,11 @@ test.describe("WhatsApp placement, wider net", () => {
 // ======================================================================
 // Build: data blocks, labels, validation (desktop only: these run the build script)
 // ======================================================================
-const parent = (n, extra = {}) => ({ ref: `T0${n}`, audience: "parent", quote: `טקסט בדיקה ${n}: הילד מגיע לשיעור בשמחה, ושואל יותר בכיתה.`, who: "אמא של תלמיד בכיתה ח׳", date: "2026-09", source: "whatsapp", consent: true, rewarded: false, ...extra });
-const tquote = (n, extra = {}) => ({ ...parent(n), ref: `T1${n}`, audience: "teacher", who: "מורה בבדרך הנכונה", ...extra });
-const teacher = (n, extra = {}) => ({ ref: `M0${n}`, name: ["דנה", "רון", "מיכל", "יעל"][n - 1], role: "מורה למתמטיקה", grades: ["ז", "ח", "ט"], line: `טקסט בדיקה ${n}: אוהבת לראות ילד שמבין סוף סוף שברים.`, consent: true, ...extra });
+// No digits in the fixtures: a parent quote, a teacher quote and a teacher line may not carry one.
+const LETTER = ["א", "ב", "ג", "ד"];
+const parent = (n, extra = {}) => ({ ref: `T0${n}`, audience: "parent", quote: `טקסט בדיקה ${LETTER[n - 1]}: הילד מגיע לשיעור בשמחה, ושואל יותר בכיתה.`, date: "2026-09", source: "whatsapp", consent: true, consentDate: "2026-09-20", shortened: false, rewarded: false, ...extra });
+const tquote = (n, extra = {}) => ({ ...parent(n), ref: `T1${n}`, audience: "teacher", ...extra });
+const teacher = (n, extra = {}) => ({ ref: `M0${n}`, name: ["דנה", "רון", "מיכל", "יעל"][n - 1], role: "מורה למתמטיקה", grades: ["ז", "ח", "ט"], line: `טקסט בדיקה ${LETTER[n - 1]}: אוהבת לראות ילד שמבין סוף סוף שברים.`, consent: true, ...extra });
 const some = (f, n) => Array.from({ length: n }, (_, i) => f(i + 1));
 const PAGES = ["index.html", "method/index.html", "teachers/index.html", "faq/index.html", "teach/index.html", "contact/index.html", "terms/index.html", "privacy/index.html", "accessibility/index.html"];
 
@@ -740,19 +742,23 @@ test.describe("data blocks and build checks", () => {
     expect(c.read("index.html")).not.toContain('id="voices"');
   });
 
-  test("labels: months, sources, reward note, escaping, grade ranges and the card initial", () => {
+  test("labels: one fixed label, the year only, sources, the shortened mark, reward note, escaping, grade ranges and the card initial", () => {
     const q = [
       parent(1, { date: "2026-01", source: "email", quote: "טקסט בדיקה: מורה מצוינת & הילד אוהב להגיע לשיעור." }),
-      parent(2, { date: "2025-12", source: "form", rewarded: true, rewardNote: "קיבלנו מתנה קטנה על ההמלצה" }),
-      parent(3, { date: "2026-09", source: "whatsapp" }),
+      parent(2, { date: "2025-12", source: "whatsapp", rewarded: true, rewardNote: "קיבלנו מתנה קטנה על ההמלצה" }),
+      parent(3, { date: "2026-09", source: "whatsapp", shortened: true, who: "אמא של תלמיד בכיתה ח׳" }),
     ];
     const m = [teacher(1, { grades: ["ח"] }), teacher(2, { grades: ["ט", "ז"] }), teacher(3, { grades: ["ו", "ז", "ח", "ט"] })];
     const b = build({ t: q, m });
     expect(b.code, b.log).toBe(0);
     const home = b.read("index.html");
-    expect(home).toContain("ינואר 2026, במייל");
-    expect(home).toContain("דצמבר 2025, בטופס באתר");
-    expect(home).toContain("ספטמבר 2026, בוואטסאפ");
+    expect(home).toContain("<span>2026, במייל</span>");
+    expect(home).toContain("<span>2025, בוואטסאפ</span>");
+    expect(home).toContain("<span>2026, בוואטסאפ (בקיצור)</span>");
+    expect(home.match(/\(בקיצור\)/g), "only the shortened quote is marked").toHaveLength(1);
+    for (const month of ["ינואר", "דצמבר", "ספטמבר"]) expect(home, `no month name (${month})`).not.toContain(month);
+    expect(home, "a per-item who label is ignored").not.toContain("אמא של תלמיד");
+    expect(home.match(/<b>הורה לתלמיד או לתלמידה בכיתות ו׳ עד ט׳<\/b>/g), "one fixed label on every parent quote").toHaveLength(3);
     expect(home).toContain("קיבלנו מתנה קטנה על ההמלצה");
     expect(home.match(/<span>קיבלנו/g), "the reward note appears once").toHaveLength(1);
     expect(home).toContain("מורה מצוינת &amp; הילד");
@@ -763,8 +769,8 @@ test.describe("data blocks and build checks", () => {
     expect([...team.matchAll(/tcard-init" aria-hidden="true">([^<]*)</g)].map((x) => x[1])).toEqual(["ד", "ר", "מ"]);
   });
 
-  test("a teacher photo is linked relative to the page and the file is copied", () => {
-    const b = build({ m: [teacher(1, { photo: "dana.jpg" }), teacher(2), teacher(3)], photoFiles: ["dana.jpg"] });
+  test("a teacher photo with photoConsent is linked relative to the page and the file is copied", () => {
+    const b = build({ m: [teacher(1, { photo: "dana.jpg", photoConsent: true }), teacher(2, { photoConsent: false }), teacher(3)], photoFiles: ["dana.jpg"] });
     expect(b.code, b.log).toBe(0);
     const html = b.read("teachers/index.html");
     const src = html.match(/<img class="tcard-img" src="([^"]+)"/)[1];
@@ -795,7 +801,14 @@ test.describe("data blocks and build checks", () => {
     ["a one-digit month", { t: [parent(1, { date: "2025-9" })] }, "YYYY-MM"],
     ["a full date instead of year and month", { t: [parent(1, { date: "2025-09-15" })] }, "YYYY-MM"],
     ["the misspelling of ניסיון in a quote", { t: [parent(1, { quote: "טקסט בדיקה: שיעור נס" + "יון מצוין ומקצועי מאוד" })] }, "נס" + "יון"],
-    ["a quote label for the wrong audience", { t: [tquote(1, { who: "אמא של תלמיד בכיתה ח׳" })] }, "not an allowed label"],
+    ["a teacher quote that claims a degree", { t: [tquote(1, { quote: "טקסט בדיקה: כבוגרת תואר במתמטיקה אני נהנית ללמד כאן" })] }, "a credential, rank, years, pay or a number"],
+    ["the site form as a quote source", { t: [parent(1, { source: "form" })] }, "source must be whatsapp or email"],
+    ["a consentDate given as year and month only", { t: [parent(1, { consentDate: "2026-09" })] }, "consentDate must be"],
+    ["shortened given as text", { t: [parent(1, { shortened: "yes" })] }, "shortened must be true or false"],
+    ["a therapist in a parent quote", { t: [parent(1, { quote: "טקסט בדיקה: הפסיכולוגית שלו המליצה עליכם בחום" })] }, "a diagnosis, health or therapy detail"],
+    ["a jump claim in a parent quote", { t: [parent(1, { quote: "טקסט בדיקה: הייתה אצלו קפיצה מטורפת השנה" })] }, "a result claim"],
+    ["photoConsent given as text", { m: [teacher(1, { photoConsent: "yes" })] }, "photoConsent must be true or false"],
+    ["pay in a teacher role", { m: [teacher(1, { role: "מורה עם שכר גבוה" })] }, "role: a credential"],
     ["an item that is not an object", { t: [null] }, "not an object"],
     ["teacher grades as text", { m: [teacher(1, { grades: "ח" })] }, "grades must be a list"],
     ["teacher grades empty", { m: [teacher(1, { grades: [] })] }, "grades must be a list"],
