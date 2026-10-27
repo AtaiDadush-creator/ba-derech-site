@@ -4,10 +4,11 @@ var OWNER = 'AtaiDadush@ba-derech.com';
 var TAB = 'פניות';
 var HEAD = ['זמן', 'פונה', 'שם', 'טלפון', 'כיתה', 'לחזור ב', 'הערה', 'עמוד', 'סטטוס'];
 var MAX_PER_HOUR = 20;   // יותר מזה בשעה: "error:busy", והאתר מציע וואטסאפ
-var MIN_MS = 2000;       // נשלח מהר מזה: כנראה בוט
-var KEEP_DAYS = 365;     // פנייה שלא הצטרפה נמחקת אחרי שנה
+var MIN_MS = 2000;       // נשלח מהר מזה: כנראה בוט, נשמר עם סטטוס "חשד"
+var KEEP_DAYS = 395;     // כל פנייה מהטופס נמחקת מהגיליון ומהמייל אחרי 13 חודשים, בלי קשר לסטטוס
 
-// להריץ פעם אחת מהעורך: כותרות, חיבור לגיליון, טריגר מחיקה חודשי, ומייל בדיקה.
+// להריץ פעם אחת מהעורך: כותרות, חיבור לגיליון, טריגר מחיקה שבועי, ומייל בדיקה.
+// להריץ שוב אחרי כל עדכון קוד שמוסיף הרשאה (למשל Gmail, בשביל מחיקת המיילים הישנים).
 function setup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(TAB) || ss.getSheets()[0].setName(TAB);
@@ -17,7 +18,8 @@ function setup() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'purge') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('purge').timeBased().onMonthDay(1).atHour(4).create();
+  ScriptApp.newTrigger('purge').timeBased().everyWeeks(1).onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(4).create();
+  GmailApp.search('subject:"פנייה מהאתר"', 0, 1); // מבקש את הרשאת Gmail כבר עכשיו, בשביל המחיקה השבועית
   MailApp.sendEmail(OWNER, 'בדיקה: טופס האתר מחובר', 'אם המייל הזה הגיע, הטופס יודע לשלוח לך מייל. השלב הבא: פריסה (Deploy).');
 }
 
@@ -27,24 +29,37 @@ function doPost(e) {
   var d;
   try { d = JSON.parse(e && e.postData ? e.postData.contents : ''); } catch (x) { return text_('error:bad'); }
   if (!d || typeof d !== 'object') return text_('error:bad');
-  if (d.hp || !(Number(d.t) >= MIN_MS)) return text_('ok'); // בוט: "ok" שקט, לא נשמר כלום
+  // מלכודת מלאה או שליחה מהירה מדי: כנראה בוט. לא זורקים: נשמר עם סטטוס "חשד", בלי מייל ובלי לספור במכסה.
+  // הבוט מקבל "ok" ולא לומד כלום, ופנייה אמיתית שנתפסה בטעות לא הולכת לאיבוד.
+  var spam = d.hp || !(Number(d.t) >= MIN_MS);
   var l = clean_(d);
-  if (!l) return text_('error:invalid');
-
-  var cache = CacheService.getScriptCache();
-  var idKey = d.id ? 'id' + String(d.id).replace(/[^\w-]/g, '').slice(0, 40) : '';
-  if ((idKey && cache.get(idKey)) || cache.get('ph' + l.phone)) return text_('ok'); // אותה פנייה פעמיים
+  if (!l) return text_(spam ? 'ok' : 'error:invalid');
 
   var lock = LockService.getScriptLock();
+  if (spam) {
+    if (!lock.tryLock(10000)) return text_('ok');
+    try { append_(l, 'חשד'); } finally { lock.releaseLock(); }
+    return text_('ok');
+  }
+
+  // אותה פנייה פעמיים: אותו מזהה טופס, או אותו טלפון עם אותו פונה, כיתה והערה בתוך 10 דקות.
+  // טופס של אח או אחות, או פנייה מתוקנת, הם פנייה חדשה.
+  var cache = CacheService.getScriptCache();
+  var idKey = d.id ? 'id' + String(d.id).replace(/[^\w-]/g, '').slice(0, 40) : '';
+  var dupKey = 'ph' + l.phone + l.role + l.grade + hash_(l.note);
+  var seen = function () { return Boolean((idKey && cache.get(idKey)) || cache.get(dupKey)); };
+  if (seen()) return text_('ok'); // מסלול מהיר, בלי לחכות לנעילה
+
   if (!lock.tryLock(10000)) return text_('error:busy');
   try {
+    if (seen()) return text_('ok'); // שוב אחרי הנעילה: ניסיון חוזר שחיכה לנעילה לא יוצר שורה שנייה
     var hour = 'h' + Utilities.formatDate(new Date(), 'Asia/Jerusalem', 'yyyyMMddHH');
     var n = Number(cache.get(hour) || 0) + 1;
     cache.put(hour, String(n), 3700);
     if (n > MAX_PER_HOUR) return text_('error:busy');
-    sheet_().appendRow([new Date(), l.role, l.name, "'" + l.phone, l.grade, l.contact, l.note, l.page, 'חדש']);
+    append_(l, 'חדש');
     if (idKey) cache.put(idKey, '1', 21600);
-    cache.put('ph' + l.phone, '1', 600);
+    cache.put(dupKey, '1', 600);
   } finally {
     lock.releaseLock();
   }
@@ -53,10 +68,10 @@ function doPost(e) {
 }
 
 function clean_(d) {
-  // טקסט נקי: בלי תווי בקרה, בלי U+2014, ובלי נוסחה בתחילת תא.
+  // טקסט נקי: בלי תווי בקרה, בלי U+2014, בלי נוסחה בתחילת תא, וטקסט שנראה כמו מספר או תאריך נשאר טקסט ("3-4" לא הופך לתאריך).
   function s(v, n) {
     return String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f\u2014]/g, ' ').replace(/\s+/g, ' ').trim()
-      .slice(0, n).replace(/^[=+\-@]/, "'$&");
+      .slice(0, n).replace(/^(?:[=+\-@]|[\d\s.,:\/-]+$)/, "'$&");
   }
   var p = String(d.phone || '').replace(/\D/g, '').replace(/^00/, '');
   if (p.indexOf('972') === 0) p = p.slice(3);
@@ -78,7 +93,7 @@ function clean_(d) {
 function mail_(l) {
   var b = ['פונה: ' + l.role, 'שם: ' + l.name, 'טלפון: ' + l.phone, 'לחזור ב: ' + l.contact];
   if (l.grade) b.push('כיתה: ' + l.grade);
-  if (l.note) b.push('הערה: ' + l.note);
+  if (l.note) b.push('הערה: יש בגיליון'); // טקסט ההערה נשאר רק בגיליון, שנמחק בזמן
   b.push('', 'וואטסאפ: https://wa.me/' + l.phone);
   try {
     MailApp.sendEmail(OWNER, 'פנייה מהאתר: ' + l.role + (l.grade ? ', כיתה ' + l.grade : ''), b.join('\n'),
@@ -88,13 +103,27 @@ function mail_(l) {
   }
 }
 
-// טריגר חודשי (נוצר ב-setup): מוחק פנייה בת יותר משנה, חוץ ממי שסומן "הצטרף" בעמודת סטטוס.
+// טריגר שבועי (נוצר ב-setup): מוחק מהגיליון כל פנייה בת יותר מ-13 חודשים, בלי קשר לסטטוס,
+// ומעביר לאשפה את המיילים "פנייה מהאתר" באותו גיל (עד 100 בכל ריצה; השאר בשבוע הבא).
 function purge() {
   var sh = sheet_(), v = sh.getDataRange().getValues(), cut = Date.now() - KEEP_DAYS * 864e5;
   for (var r = v.length - 1; r >= 1; r--) {
     var t = v[r][0] instanceof Date ? v[r][0].getTime() : 0;
-    if (t && t < cut && v[r][8] !== 'הצטרף') sh.deleteRow(r + 1);
+    if (t && t < cut) sh.deleteRow(r + 1);
   }
+  var old = GmailApp.search('subject:"פנייה מהאתר" older_than:' + KEEP_DAYS + 'd', 0, 100);
+  if (old.length) GmailApp.moveThreadsToTrash(old);
+}
+
+function append_(l, status) {
+  sheet_().appendRow([new Date(), l.role, l.name, "'" + l.phone, l.grade, l.contact, l.note, l.page, status]);
+}
+
+// גיבוב קצר של ההערה, בשביל מפתח הכפילויות במטמון.
+function hash_(s) {
+  var h = 0;
+  for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
 }
 
 function sheet_() {
