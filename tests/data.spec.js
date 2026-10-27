@@ -58,7 +58,7 @@ test("three of each: the sections render with the footer link, labels and grades
 const BAD = [
   ["no consent", { t: [parent(1, { consent: false }), parent(2), parent(3)] }, "consent must be true"],
   ["a name in the label", { t: [parent(1, { who: "דנה, אמא של יואב" })] }, "is not an allowed label"],
-  ["an em dash", { t: [parent(1, { quote: "טקסט בדיקה: מורה מצוינת — ממליצה בחום לכולם" })] }, "em dash"],
+  ["an em dash", { t: [parent(1, { quote: "טקסט בדיקה: מורה מצוינת \u2014 ממליצה בחום לכולם" })] }, "em dash"],
   ["a child's name field", { t: [parent(1, { childName: "יואב" })] }, 'unknown field "childName"'],
   ["a date in the future", { t: [parent(1, { date: "2099-01" })] }, "not in the future"],
   ["a phone number", { t: [parent(1, { quote: "טקסט בדיקה: התקשרו אליי 050-1234567 בכל שעה" })] }, "phone number"],

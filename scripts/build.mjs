@@ -140,7 +140,7 @@ function checkText(where, s, min, max) {
   if (typeof s !== "string") return [`${where}: must be text`];
   const t = s.trim(), out = [];
   if (t.length < min || t.length > max) out.push(`${where}: ${t.length} characters, allowed ${min} to ${max}`);
-  if (t.includes("—")) out.push(`${where}: em dash (U+2014)`);
+  if (t.includes("\u2014")) out.push(`${where}: em dash (U+2014)`);
   if (t.includes("נסיון")) out.push(`${where}: spelling "נסיון" (use "ניסיון")`);
   if (/\d[\d\s-]{6,}\d/.test(t)) out.push(`${where}: looks like a phone number`);
   if (/₪|ש[״"]ח/.test(t)) out.push(`${where}: a price`);
