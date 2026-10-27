@@ -1,6 +1,6 @@
 # ba-derech.com
 
-The landing page of בדרך הנכונה: small-group math lessons on Zoom for grades ו׳ to ט׳. Static HTML, CSS and JavaScript, published with GitHub Pages. Every button opens WhatsApp with a prefilled message.
+The brand site of בדרך הנכונה: small-group math lessons on Zoom for grades ו׳ to ט׳, for parents and for teachers. Static HTML, CSS and JavaScript, published with GitHub Pages. Contact links open WhatsApp with a prefilled message; the share link (data-share) opens WhatsApp with no number.
 
 - Plan and decisions (Hebrew): [docs/PLAN.md](docs/PLAN.md)
 - Waiting on the owner: [docs/OWNER-TODO.md](docs/OWNER-TODO.md)

@@ -3,6 +3,7 @@
 // - fills {{owner:key}} facts from src/owner.json (missing ones become a visible placeholder on previews),
 // - expands <!--#include name--> from src/_partials/ and {{base}} (relative path to the site root),
 // - turns each data-wa message into a wa.me link and tells screen readers that it opens WhatsApp,
+// - turns each data-share message into a WhatsApp share link with no number (the visitor picks the recipient),
 // - adds noindex until the real domain is set (src/CNAME), points share previews at the preview address meanwhile,
 //   and refuses a real-domain build with missing facts,
 // - fails on known content problems.
@@ -12,6 +13,7 @@ import { join, extname, relative, sep } from "node:path";
 const SRC = "src";
 const DIST = "dist";
 const PHONE = "972559897869";
+const SHARE = "https://wa.me/?text=";
 const problems = [];
 const missing = new Set();
 
@@ -36,16 +38,10 @@ function fact(key) {
   return `<mark class="todo">[${LABELS[key] || key}]</mark>`;
 }
 
-const money = (n) => n.toLocaleString("en-US");
 function special(name) {
   if (name === "vat") {
     if (!owner.businessType) { missing.add("businessType"); return `<mark class="todo">[המחירים כוללים מע״מ / עוסק פטור]</mark>`; }
     return owner.businessType.includes("פטור") ? "עוסק פטור, אין תוספת מע״מ." : "המחירים כוללים מע״מ.";
-  }
-  if (name === "total:half") return money(590 * 6);
-  if (name === "total:annual") {
-    if (!owner.annualMonths) { missing.add("annualMonths"); return `<mark class="todo">[סכום כולל]</mark>`; }
-    return money(490 * Number(owner.annualMonths));
   }
   problems.push(`unknown token {{${name}}}`);
   return "";
@@ -86,6 +82,14 @@ function addWhatsAppLinks(html) {
   });
 }
 
+// A share link: WhatsApp opens with the text and lets the visitor choose who gets it. No phone number, ours or anyone's.
+function addShareLinks(html) {
+  return html.replace(/<a ([^>]*?)data-share="([^"]*)"([^>]*)>([\s\S]*?)<\/a>/g, (whole, before, msg, after, inner) => {
+    if (/\shref=|\sdata-wa=/.test(" " + before + after)) { problems.push(`a data-share link must not have href or data-wa: ${msg}`); return whole; }
+    return `<a ${before}href="${SHARE}${encodeURIComponent(msg)}" data-share="${msg}"${after}>${inner}<span class="sr"> (נפתח בוואטסאפ)</span></a>`;
+  });
+}
+
 const partials = {};
 for (const f of await readdir(join(SRC, "_partials")).catch(() => [])) {
   partials[f.replace(/\.html$/, "")] = await readFile(join(SRC, "_partials", f), "utf8");
@@ -114,14 +118,14 @@ for (const file of await walk(DIST)) {
   html = html
     .replace(/\{\{base\}\}/g, base)
     .replace(/\{\{owner:(\w+)\}\}/g, (m, key) => fact(key))
-    .replace(/\{\{((?:vat|total:\w+))\}\}/g, (m, name) => special(name));
+    .replace(/\{\{(vat)\}\}/g, (m, name) => special(name));
   if (!live && !html.includes('name="robots"')) {
     html = html.replace("</title>", '</title>\n<meta name="robots" content="noindex">');
   }
   // Until the domain points here, a shared link must preview from the address that actually serves the image.
   if (!live) html = html.replace(/(<meta (?:property|name)="(?:og:url|og:image|twitter:image)" content=")https:\/\/ba-derech\.com\//g, `$1${PREVIEW}`);
   checkHtml(file, html);
-  await writeFile(file, addWhatsAppLinks(html));
+  await writeFile(file, addShareLinks(addWhatsAppLinks(html)));
 }
 
 if (missing.size) {

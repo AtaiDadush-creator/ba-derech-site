@@ -5,11 +5,7 @@ import { fileURLToPath } from "node:url";
 
 export const PHONE = "972559897869";
 export const WA_PREFIX = `https://wa.me/${PHONE}?text=`;
-// .wa-bar is only styled inside @media (max-width: 860px); tablet 768 is in that range too.
-export const BAR_MAX_WIDTH = 860;
 export const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
-
-export const isNarrow = (page) => page.viewportSize().width <= BAR_MAX_WIDTH;
 
 // WebKit on macOS follows Safari's default: plain Tab skips links, Option+Tab reaches every focusable element.
 export const tabKey = (browserName) => (browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab");
