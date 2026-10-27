@@ -1,0 +1,16 @@
+{
+  "name": "ba-derech-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "serve": "node scripts/serve.mjs",
+    "test": "npm run build && playwright test",
+    "validate": "html-validate \"dist/**/*.html\""
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
+    "html-validate": "8.28.0"
+  }
+}
