@@ -25,7 +25,8 @@ const owner = JSON.parse(await readFile(join(SRC, "owner.json"), "utf8"));
 const live = await access(join(SRC, "CNAME")).then(() => true, () => false);
 const PREVIEW = "https://ataidadush-creator.github.io/ba-derech-site/";
 // The form endpoint is optional: null means the form opens WhatsApp with the details (not a missing fact).
-const ENDPOINT_RE = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]{20,}\/exec$/;
+// A Workspace account may be given the /a/macros/<domain>/ form of the same URL.
+const ENDPOINT_RE = /^https:\/\/script\.google\.com\/(?:a\/macros\/[\w.-]+|macros)\/s\/[\w-]{20,}\/exec$/;
 const endpoint = (() => {
   const v = owner.leadsEndpoint;
   if (v === null || v === undefined || v === "") return "";
@@ -48,7 +49,7 @@ const LABELS = {
 
 function fact(key) {
   const v = owner[key];
-  if (v !== null && v !== undefined && v !== "") return String(v);
+  if (v !== null && v !== undefined && v !== "") return esc(v); // owner.json text never becomes markup
   missing.add(key);
   return `<mark class="todo">[${LABELS[key] || key}]</mark>`;
 }

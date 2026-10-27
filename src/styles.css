@@ -444,14 +444,15 @@ img { display: block; max-width: 100%; }
 .chip:has(input:checked) { background: var(--ink); color: var(--ground); border-color: var(--ink); }
 .f-hint { margin-top: 6px; font-size: var(--t-small); }
 .f-err { margin-top: 6px; font-size: var(--t-small); font-weight: 700; color: var(--err); }
+.f-sum { font-weight: 700; color: var(--err); }
 .f-field input[aria-invalid="true"], .f-choice[aria-invalid="true"] .chip { border-color: var(--err); }
 .f-hp { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .f-notice, .f-mode { font-size: var(--t-small); line-height: 1.5; max-width: 62ch; }
 .f-notice a, .f-done a { text-decoration: underline; text-underline-offset: 3px; }
 .lead-form .btn { justify-self: start; }
-.lead-form .btn:disabled { opacity: .6; cursor: progress; }
+.lead-form .btn[aria-disabled="true"] { opacity: .6; cursor: progress; }
 .f-status { display: grid; gap: 6px; justify-items: start; font-weight: 600; }
-.f-status:empty { display: none; }
+.f-status:empty, .f-sum:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .f-done { display: grid; gap: 12px; }
 .f-done h3 { font-size: var(--t-head); font-weight: 800; font-stretch: 85%; line-height: 1.1; }
 .f-nojs { font-weight: 600; margin-bottom: 12px; }
@@ -489,9 +490,9 @@ img { display: block; max-width: 100%; }
   .nav { gap: 8px 10px; padding-block: 14px; }
   .nav .logo { margin-inline-end: auto; }
   .nav .logo img { height: clamp(28px, 8.5vw, 38px); }
-  .head-wa { order: 1; min-width: 44px; justify-content: center; }
+  .head-wa { order: 2; min-width: 44px; justify-content: center; }
   .head-wa-t { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .menu-btn { order: 2; }
+  .menu-btn { order: 1; }
   .nav ul { order: 3; flex: 1 0 100%; flex-direction: column; gap: 0; margin: 0; padding-top: 6px; font-size: 1.0625rem; }
   .nav ul a { display: block; padding-block: 12px; color: var(--ink); }
   .nav ul li + li { border-top: 1px solid var(--pale); }

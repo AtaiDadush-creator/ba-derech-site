@@ -132,11 +132,12 @@ test.describe("form, WhatsApp mode", () => {
     await expect(page.locator("#f-phone")).not.toHaveAttribute("aria-invalid", "true");
   });
 
-  test("name rules: two letters in, one letter, digits, punctuation and blanks out; spaces squeezed; 60 characters at most", async ({ page }) => {
+  test("name rules: two letters in any script in, one letter, digits, punctuation and blanks out; spaces squeezed; 60 characters at most", async ({ page }) => {
     await openForm(page);
     await fillForm(page);
     let n = 0;
-    for (const ok of ["דנ", "Dana", "דנה2", "  דנה    כהן  ", "א".repeat(60)]) {
+    // Arabic-only and Cyrillic-only names are accepted (any letter counts), like Hebrew and Latin ones.
+    for (const ok of ["דנ", "Dana", "דנה2", "  דנה    כהן  ", "א".repeat(60), "محمد", "Иван"]) {
       await page.fill("#f-name", ok);
       await submit(page);
       const all = await calls(page);
@@ -192,22 +193,27 @@ test.describe("form, WhatsApp mode", () => {
     expect(values(last).at(-1)).toBe("ב".repeat(500));
   });
 
-  test("honeypot in WhatsApp mode: a filled trap opens nothing and shows the thank-you", async ({ page }) => {
+  test("honeypot in WhatsApp mode: a filled trap behaves like a normal send (WhatsApp opens with the details, no thank-you)", async ({ page }) => {
     await openForm(page);
     await fillForm(page);
     await page.locator("#f-hp").evaluate((el) => { el.value = "spam"; });
     await submit(page);
-    await expect(page.locator("#f-done")).toBeVisible();
-    expect(await calls(page)).toEqual([]);
+    const all = await calls(page);
+    expect(all).toHaveLength(1);
+    expect(values(all[0][0])).toContain("דנה");
+    await expect(page.locator("#f-status a.wa-fallback")).toBeVisible();
+    await expect(page.locator("#f-done")).toBeHidden();
   });
 
-  test("the thank-you shows only the line of the chosen channel", async ({ page }) => {
-    await openForm(page);
-    await fillForm(page, { contact: "call" });
-    await page.locator("#f-hp").evaluate((el) => { el.value = "spam"; });
-    await submit(page);
-    await expect(page.locator('#f-done [data-contact="call"]')).toBeVisible();
-    await expect(page.locator('#f-done [data-contact="whatsapp"]')).toBeHidden();
+  test("the thank-you shows only the line of the chosen channel, both ways", async ({ page }) => {
+    await withEndpoint(page, reply("ok"));
+    for (const [contact, other] of [["call", "whatsapp"], ["whatsapp", "call"]]) {
+      await openForm(page);
+      await fillForm(page, { contact });
+      await submit(page);
+      await expect(page.locator(`#f-done [data-contact="${contact}"]`)).toBeVisible({ timeout: 8000 });
+      await expect(page.locator(`#f-done [data-contact="${other}"]`)).toBeHidden();
+    }
   });
 });
 
@@ -240,19 +246,18 @@ test.describe("form layout in every state", () => {
     await submit(page);
     await expect(page.locator("#f-status a.wa-fallback")).toBeVisible();
     await check(page, "WhatsApp status line and link");
-    await page.locator("#f-hp").evaluate((el) => { el.value = "x"; });
-    await submit(page);
-    await expect(page.locator("#f-done")).toBeVisible();
-    await check(page, "thank-you");
   });
 
-  test("the failure message with its WhatsApp link", async ({ page }) => {
-    await withEndpoint(page, reply("nope"));
+  test("the failure message with its WhatsApp link, then the thank-you after a retry", async ({ page }) => {
+    await withEndpoint(page, (route, n) => reply(n === 1 ? "nope" : "ok")(route));
     await openForm(page);
     await fillForm(page, { name: "ש".repeat(60), note: "ב".repeat(500) });
     await submit(page);
     await expect(page.locator("#f-status a.wa-fallback")).toBeVisible({ timeout: 8000 });
     await check(page, "failure link");
+    await submit(page);
+    await expect(page.locator("#f-done")).toBeVisible({ timeout: 8000 });
+    await check(page, "thank-you");
   });
 });
 
@@ -381,15 +386,19 @@ test.describe("form, endpoint mode", () => {
     });
   }
 
-  test("honeypot in endpoint mode: nothing is sent even after the 2 second wait has passed", async ({ page }) => {
+  test("honeypot in endpoint mode: the request is sent once, after the 2 second wait, with the trap value; no early thank-you", async ({ page }) => {
     const seen = await withEndpoint(page, reply("ok"));
     await openForm(page);
     await fillForm(page);
     await page.locator("#f-hp").evaluate((el) => { el.value = "spam"; });
     await submit(page);
-    await expect(page.locator("#f-done")).toBeVisible();
-    await page.waitForTimeout(2800); // a delayed send would fire at 2.1 seconds
-    expect(seen).toHaveLength(0);
+    await expect(page.locator("#f-done")).toBeHidden();
+    await expect.poll(() => seen.length, { timeout: 8000 }).toBe(1);
+    expect(seen[0].body.hp).toBe("spam");
+    expect(seen[0].body.t).toBeGreaterThanOrEqual(2000);
+    await expect(page.locator("#f-done")).toBeVisible({ timeout: 8000 });
+    await page.waitForTimeout(500);
+    expect(seen).toHaveLength(1);
     expect(await calls(page)).toEqual([]);
   });
 

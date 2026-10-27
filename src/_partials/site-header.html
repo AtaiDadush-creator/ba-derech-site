@@ -6,7 +6,7 @@
       <img class="l" src="{{base}}assets/img/logo-wide.png" alt="בדרך הנכונה" width="560" height="119">
       <img class="d" src="{{base}}assets/img/logo-wide-white.png" alt="" width="560" height="119">
     </a>
-    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu" hidden>תפריט</button>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu" data-close="סגירה" hidden>תפריט</button>
     <ul id="menu">
       <li><a href="{{base}}method/" data-route="method/">איך זה עובד</a></li>
       <li><a href="{{base}}teachers/" data-route="teachers/">המורים</a></li>
@@ -17,3 +17,24 @@
     <a class="head-wa wa" data-wa="היי, הגעתי מהאתר ויש לי שאלה." target="_blank" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg><span class="head-wa-t">כתבו לנו</span></a>
   </nav>
 </header>
+<script>
+// Phone menu, inline so it works even if main.js does not load. Without JavaScript the links simply stay visible (.js in styles.css).
+(function () {
+  var btn = document.querySelector(".menu-btn"), menu = document.getElementById("menu");
+  if (!btn || !menu) return;
+  var label = btn.textContent, close = btn.getAttribute("data-close");
+  var set = function (open) {
+    menu.classList.toggle("open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.textContent = open ? close : label;
+  };
+  btn.hidden = false;
+  btn.addEventListener("click", function () { set(!menu.classList.contains("open")); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && menu.classList.contains("open")) { set(false); btn.focus(); }
+  });
+  document.addEventListener("click", function (e) {
+    if (menu.classList.contains("open") && !(e.target.closest && e.target.closest(".nav"))) set(false);
+  });
+})();
+</script>

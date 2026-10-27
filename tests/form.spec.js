@@ -115,15 +115,81 @@ test("WhatsApp mode (no endpoint): honest button, a wa.me link with the details 
   expect(calls).toEqual([]);
 });
 
-test("honeypot: a filled trap sends nothing, opens nothing, and shows the thank-you panel", async ({ page }) => {
+test("honeypot: the client never drops a send; a filled trap travels in the body and the server decides", async ({ page }) => {
   const requests = await withEndpoint(page, { body: "ok" });
   await open(page);
   await fill(page);
   await page.locator("#f-hp").evaluate((el) => { el.value = "http://spam.example"; });
   await submit(page);
-  await expect(page.locator("#f-done")).toBeVisible();
-  expect(requests).toHaveLength(0);
+  await expect(page.locator("#f-done")).toBeVisible({ timeout: 6000 });
+  expect(requests).toHaveLength(1);
+  expect(JSON.parse(requests[0].postData()).hp).toBe("http://spam.example");
   expect(await opened(page)).toEqual([]);
+});
+
+test("honeypot in WhatsApp mode: a filled trap (an autofill, say) opens WhatsApp like any other send", async ({ page }) => {
+  await open(page);
+  await fill(page);
+  await page.locator("#f-hp").evaluate((el) => { el.value = "x"; });
+  await submit(page);
+  expect(await opened(page)).toHaveLength(1);
+  await expect(page.locator("#f-done")).toBeHidden();
+});
+
+test("with JavaScript the no-JavaScript line is hidden and the form shows", async ({ page }) => {
+  await open(page);
+  await expect(page.locator("#f-nojs")).toBeHidden();
+});
+
+test("error summary: an alert above the fields counts the fields to fix, and empties once they are fixed", async ({ page }) => {
+  await open(page);
+  const sum = page.locator("#f-sum");
+  await expect(sum).toHaveAttribute("role", "alert");
+  expect(await sum.evaluate((s) => s.compareDocumentPosition(document.getElementById("f-name")) & Node.DOCUMENT_POSITION_FOLLOWING), "above the fields").toBeTruthy();
+  await submit(page);
+  const many = await sum.getAttribute("data-many");
+  await expect(sum).toHaveText(many.replace("{n}", "3"));
+  await expect(page.locator("#f-name")).toBeFocused();
+  await page.fill("#f-name", "דנה");
+  await page.fill("#f-phone", "0501234567");
+  await submit(page);
+  await expect(sum).toHaveText(await sum.getAttribute("data-one"));
+  await page.locator('input[name="grade"][value="ח"]').check();
+  await expect(sum).toHaveText("");
+  await submit(page);
+  await expect(sum).toHaveText("");
+  expect(await opened(page)).toHaveLength(1);
+});
+
+test("WhatsApp mode: a double tap opens one tab; editing the form allows the next send", async ({ page }) => {
+  await open(page);
+  await fill(page);
+  await page.evaluate(() => { const f = document.getElementById("lead-form"); f.requestSubmit(); f.requestSubmit(); });
+  expect(await opened(page)).toHaveLength(1);
+  await page.fill("#f-note", "עוד משהו");
+  await submit(page);
+  expect(await opened(page)).toHaveLength(2);
+});
+
+test("Apps Script mode: while sending, the button stays focused and is marked aria-disabled", async ({ page }) => {
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  await page.route("**/contact/**", async (route) => {
+    if (route.request().resourceType() !== "document") return route.continue();
+    const res = await route.fetch();
+    await route.fulfill({ response: res, body: (await res.text()).replace('data-endpoint=""', `data-endpoint="${ENDPOINT}"`) });
+  });
+  await page.route(ENDPOINT, async (route) => { await gate; await route.fulfill({ status: 200, body: "ok", headers: { "content-type": "text/plain", "access-control-allow-origin": "*" } }); });
+  await open(page);
+  await fill(page);
+  const btn = page.locator('#lead-form button[type="submit"]');
+  await btn.focus();
+  await page.keyboard.press("Enter");
+  await expect(btn).toHaveAttribute("aria-disabled", "true");
+  await expect(btn).toBeFocused();
+  await expect(btn).not.toHaveAttribute("disabled", "");
+  release();
+  await expect(page.locator("#f-done")).toBeVisible({ timeout: 6000 });
 });
 
 test("Apps Script mode, reply ok: a text/plain JSON body, then the thank-you panel takes focus", async ({ page }) => {

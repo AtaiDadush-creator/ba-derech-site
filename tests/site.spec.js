@@ -68,12 +68,35 @@ test("phone menu: closed at first, opens and closes, Escape returns focus; on de
   await expect(btn).toBeVisible();
   await expect(btn).toHaveAttribute("aria-expanded", "false");
   await expect(menu).toBeHidden();
+  const closedLabel = (await btn.textContent()).trim();
   await btn.click();
   await expect(btn).toHaveAttribute("aria-expanded", "true");
   await expect(menu).toBeVisible();
+  await expect(btn, "the open button says it closes").toHaveText(await btn.getAttribute("data-close"));
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
   await expect(btn).toBeFocused();
+  await expect(btn).toHaveText(closedLabel);
+  // A tap outside the header closes the open menu.
+  await btn.click();
+  await expect(menu).toBeVisible();
+  await page.locator("main h1").click();
+  await expect(menu).toBeHidden();
+  await expect(btn).toHaveAttribute("aria-expanded", "false");
+});
+
+test("if main.js does not load: the phone menu still works, and the contact page says the form needs JavaScript", async ({ page }) => {
+  await page.route("**/main.js", (route) => route.abort());
+  await gotoPage(page, "/contact/");
+  await expect(page.locator(".f-nojs")).toBeVisible();
+  await expect(page.locator("#lead-form")).toBeHidden();
+  if (page.viewportSize().width > 860) {
+    await expect(page.locator("#menu a").first()).toBeVisible();
+    return;
+  }
+  await page.locator(".menu-btn").click();
+  await expect(page.locator("#menu")).toBeVisible();
+  await expect(page.locator(".menu-btn")).toHaveAttribute("aria-expanded", "true");
 });
 
 test("without JavaScript: nav links visible, no menu button", async ({ browser }) => {

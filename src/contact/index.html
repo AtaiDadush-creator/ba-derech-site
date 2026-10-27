@@ -20,8 +20,9 @@
   <section class="contact wrap" id="lead" aria-labelledby="h-lead">
     <div class="lead-box">
       <h2 id="h-lead">להשאיר פרטים</h2>
-      <noscript><p class="f-nojs">הטופס צריך JavaScript. אפשר לכתוב לנו בוואטסאפ או במייל, בקישורים שבעמוד.</p></noscript>
+      <p class="f-nojs" id="f-nojs">הטופס צריך JavaScript. אפשר לכתוב לנו בוואטסאפ או במייל, בקישורים שבעמוד.</p>
       <form class="lead-form" id="lead-form" data-endpoint="{{leadsEndpoint}}" novalidate hidden>
+        <p class="f-sum" id="f-sum" role="alert" data-one="יש לתקן שדה אחד" data-many="יש לתקן {n} שדות"></p>
         <fieldset>
           <legend>מי פונה?</legend>
           <div class="chips">
