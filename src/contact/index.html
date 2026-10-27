@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<!--#include doc-head-->
+<title>צרו קשר | בדרך הנכונה</title>
+<meta name="description" content="משאירים שם וטלפון ונחזור אליכם, או כותבים לנו בוואטסאפ או במייל. להורים לילדים בכיתות ו׳ עד ט׳ ולמורים למתמטיקה.">
+<link rel="canonical" href="https://ba-derech.com/contact/">
+<meta property="og:title" content="צרו קשר | בדרך הנכונה">
+<meta property="og:description" content="משאירים שם וטלפון ונחזור אליכם, או כותבים לנו בוואטסאפ.">
+<meta property="og:url" content="https://ba-derech.com/contact/">
+</head>
+<body>
+<!--#include site-header-->
+<main id="main">
+  <section class="page-head wrap" aria-labelledby="h1">
+    <h1 class="display" id="h1">נשמח להכיר.</h1>
+    <p class="lead">רוצים שנחזור אליכם? משאירים שם וטלפון. מעדיפים לכתוב בעצמכם? אפשר בוואטסאפ או במייל.</p>
+  </section>
+
+  <section class="contact wrap" id="lead" aria-labelledby="h-lead">
+    <div class="lead-box">
+      <h2 id="h-lead">להשאיר פרטים</h2>
+      <noscript><p class="f-nojs">הטופס צריך JavaScript. אפשר לכתוב לנו בוואטסאפ או במייל, בקישורים שבעמוד.</p></noscript>
+      <form class="lead-form" id="lead-form" data-endpoint="{{leadsEndpoint}}" novalidate hidden>
+        <fieldset>
+          <legend>מי פונה?</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="role" value="parent" checked> הורה</label>
+            <label class="chip"><input type="radio" name="role" value="teacher"> מורה למתמטיקה</label>
+          </div>
+        </fieldset>
+        <div class="f-field">
+          <label for="f-name">השם שלכם</label>
+          <input id="f-name" name="name" type="text" autocomplete="name" maxlength="60" required aria-describedby="e-name">
+          <p class="f-err" id="e-name" data-msg="כתבו שם, כדי שנדע איך לפנות אליכם." hidden></p>
+        </div>
+        <div class="f-field">
+          <label for="f-phone">טלפון</label>
+          <input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" dir="ltr" maxlength="20" required aria-describedby="e-phone">
+          <p class="f-err" id="e-phone" data-msg="המספר לא נראה שלם. למשל 050-1234567." hidden></p>
+        </div>
+        <fieldset class="f-choice" id="f-grade" role="radiogroup" aria-labelledby="l-grade" aria-required="true" aria-describedby="e-grade" data-for="parent">
+          <legend id="l-grade">באיזו כיתה הילד?</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="grade" value="ו"> ו׳</label>
+            <label class="chip"><input type="radio" name="grade" value="ז"> ז׳</label>
+            <label class="chip"><input type="radio" name="grade" value="ח"> ח׳</label>
+            <label class="chip"><input type="radio" name="grade" value="ט"> ט׳</label>
+            <label class="chip"><input type="radio" name="grade" value="אחרת"> כיתה אחרת</label>
+          </div>
+          <p class="f-err" id="e-grade" data-msg="בחרו כיתה, או ״כיתה אחרת״." hidden></p>
+        </fieldset>
+        <fieldset>
+          <legend>איך נוח שנחזור אליכם?</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="contact" value="whatsapp" checked> בוואטסאפ</label>
+            <label class="chip"><input type="radio" name="contact" value="call"> בשיחת טלפון</label>
+          </div>
+        </fieldset>
+        <div class="f-field">
+          <label for="f-note">רוצים לספר עוד? <span class="f-opt">(לא חובה)</span></label>
+          <textarea id="f-note" name="note" rows="3" maxlength="500" aria-describedby="h-note"></textarea>
+          <p class="f-hint" id="h-note" data-for="parent">מה קשה עכשיו, או מה המטרה. בלי שם של הילד ובלי מידע רפואי או אבחונים.</p>
+          <p class="f-hint" id="h-note-t" data-for="teacher" hidden>באילו כיתות לימדתם, מה הניסיון שלכם בהוראה ואילו שעות מתאימות לכם.</p>
+        </div>
+        <div class="f-hp">
+          <label for="f-hp">לא למלא את השדה הזה</label>
+          <input id="f-hp" name="hp" type="text" tabindex="-1" autocomplete="off">
+        </div>
+        <p class="f-mode" id="f-mode" hidden>בלחיצה ייפתח וואטסאפ עם הפרטים שכתבתם. הם יגיעו אלינו רק אחרי שתלחצו שם על שליחה.</p>
+        <p class="f-notice">את הפרטים מקבל רק {{owner:legalName}} (בדרך הנכונה). נשתמש בהם רק כדי לחזור אליכם: הורים, כדי לתאם שיחת היכרות; מורים, כדי לבדוק התאמה. הם נשמרים אצל ספקי השירות שלנו (Google ו-WhatsApp), ואנחנו לא מעבירים אותם לאחרים ולא לפרסום. אין חובה חוקית למסור אותם, אבל בלי שם וטלפון לא נוכל לחזור אליכם. אפשר לבקש לעיין בפרטים, לתקן או למחוק אותם, בוואטסאפ או במייל. פנייה שלא הובילה להצטרפות נמחקת אחרי 12 חודשים. הטופס מיועד להורים ולמורים, לא לילדים. <a href="{{base}}privacy/">פרטיות</a></p>
+        <button class="btn" type="submit" data-label-wa="להמשיך בוואטסאפ">לשלוח</button>
+        <div class="f-status" id="f-status" role="status"
+          data-sending="שולחים..."
+          data-wa-open="פתחנו וואטסאפ עם הפרטים. הם יגיעו אלינו אחרי שתלחצו שם על שליחה."
+          data-wa-link="לא נפתח? לפתוח את וואטסאפ"
+          data-fail="משהו לא עבד אצלנו, והפרטים לא נשלחו. אפשר לשלוח אותם בוואטסאפ:"
+          data-fail-link="לשלוח את הפרטים בוואטסאפ"></div>
+      </form>
+      <div class="f-done" id="f-done" tabindex="-1" hidden>
+        <h3>קיבלנו, תודה.</h3>
+        <p data-contact="whatsapp">נחזור אליכם בהקדם בוואטסאפ, למספר שמסרתם.</p>
+        <p data-contact="call" hidden>נחזור אליכם בהקדם בשיחת טלפון, למספר שמסרתם.</p>
+        <p>בינתיים אפשר לקרוא <a href="{{base}}method/">איך זה עובד</a>.</p>
+      </div>
+    </div>
+    <div class="contact-side">
+      <div>
+        <h2>מה קורה אחר כך</h2>
+        <ol class="after">
+          <li>נחזור אליכם בהקדם, בוואטסאפ או בטלפון, איך שבחרתם.</li>
+          <li>הורים: שיחת היכרות של 5 דקות. באיזו כיתה הילד, מה קשה לו ומה המטרה.</li>
+          <li>אחריה מגיע אליכם סיכום כתוב, ונקבע שיעור ניסיון בקבוצה מתאימה.</li>
+        </ol>
+        <p class="after-t">מורים: נחזור אליכם כדי להכיר ולבדוק התאמה.</p>
+      </div>
+      <div>
+        <h2>אפשר גם לכתוב</h2>
+        <div class="reach-list">
+          <a class="tlink wa" data-wa="היי, הגעתי מהאתר ויש לי שאלה על שיעורי המתמטיקה:" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg>שאלה על השיעורים</a>
+          <a class="tlink wa" data-wa="היי, אני מורה למתמטיקה ואשמח לשמוע על ההוראה אצלכם." target="_blank" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg>למורים: ללמד איתנו</a>
+          <a class="tlink" href="mailto:{{owner:email}}">במייל: <span class="ltr">{{owner:email}}</span></a>
+        </div>
+        <p class="privacy-note">בוואטסאפ אין צורך לכתוב שם של ילד. המחיר והתנאים נמסרים בכתב לפני כל התחייבות.</p>
+      </div>
+      <div>
+        <h2>להמליץ עלינו</h2>
+        <p>מכירים משפחה שזה יכול לעזור לה? אפשר פשוט לשלוח לה את האתר.</p>
+        <a class="tlink share" data-share="היי, חשבתי שזה יכול לעניין אתכם: בדרך הנכונה, שיעורי מתמטיקה בקבוצות קטנות בזום לכיתות ו׳ עד ט׳. https://ba-derech.com/" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-wa"/></svg>לשלוח את האתר בוואטסאפ</a>
+      </div>
+    </div>
+  </section>
+</main>
+<!--#include site-footer-->
+</body>
+</html>
