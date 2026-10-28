@@ -1,6 +1,6 @@
 // 5. FAQ cards: first open, others closed; mouse and keyboard toggle; aria-expanded mirrors the answer's hidden state.
 import { test, expect } from "@playwright/test";
-import { gotoHome, scrollToY, tabKey } from "./helpers.js";
+import { gotoPage, scrollToY, tabKey } from "./helpers.js";
 
 const state = (page) =>
   page.locator(".faq .card").evaluateAll((cards) =>
@@ -29,19 +29,19 @@ function expectConsistent(cards) {
 /** Document-relative top of an element, so Playwright's own scrolling cannot hide a layout shift. */
 const docTop = (loc) => loc.evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
 
-/** Put an element in the upper third of the viewport (clear of the fixed phone bar). */
+/** Put an element in the upper third of the viewport. */
 async function bringToUpperThird(page, loc) {
   const y = await loc.evaluate((el) => el.getBoundingClientRect().top + window.scrollY - window.innerHeight / 3);
   await scrollToY(page, Math.max(0, y));
 }
 
 test.beforeEach(async ({ page }) => {
-  await gotoHome(page);
+  await gotoPage(page, "/faq/");
 });
 
 test("first card starts open, all others closed, aria in sync", async ({ page }) => {
   const cards = await state(page);
-  expect(cards.length).toBeGreaterThan(1);
+  expect(cards.length).toBe(9);
   expect(cards[0].open).toBe(true);
   expect(cards.slice(1).every((c) => !c.open && c.hidden)).toBe(true);
   expectConsistent(cards);

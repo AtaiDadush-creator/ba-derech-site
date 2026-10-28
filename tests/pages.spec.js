@@ -1,40 +1,16 @@
-// 10. Legal pages and 404: clean load, axe in light and dark, no overflow, footer links reach every page.
+// 10. Legal pages and 404: footer links reach every legal page, the logo leads home, and an unknown path is a 404.
+// (Clean load, axe and overflow on the legal pages live in site.spec.js, with every other page.)
 import { test, expect } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
-import { gotoHome, scrollThrough } from "./helpers.js";
+import { gotoHome } from "./helpers.js";
 
-const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 const PAGES = ["terms/", "privacy/", "accessibility/"];
-
-for (const path of PAGES) {
-  test(`${path}: clean load, one h1, axe light and dark, no overflow`, async ({ page }) => {
-    const problems = [];
-    page.on("console", (m) => { if (m.type() === "error") problems.push(`console error: ${m.text()}`); });
-    page.on("pageerror", (e) => problems.push(`page error: ${e.message}`));
-    page.on("requestfailed", (r) => problems.push(`request failed: ${r.url()}`));
-    page.on("response", (r) => { if (r.status() >= 400) problems.push(`HTTP ${r.status()}: ${r.url()}`); });
-
-    for (const colorScheme of ["light", "dark"]) {
-      await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
-      await page.goto(`/${path}`);
-      await page.evaluate(() => document.fonts.ready.then(() => true));
-      await expect(page.locator("h1")).toHaveCount(1);
-      await expect(page.locator("main#main")).toBeVisible();
-      const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
-      expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`), colorScheme).toEqual([]);
-      const worst = await scrollThrough(page);
-      expect(worst.overflow, `horizontal overflow at y=${worst.y}`).toBeLessThanOrEqual(0);
-    }
-    expect(problems).toEqual([]);
-  });
-}
 
 test("footer legal links reach each page, and each page links home", async ({ page }) => {
   for (const path of PAGES) {
     await gotoHome(page);
     await page.locator(`.foot-legal nav a[href="${path}"]`).click();
     await expect(page).toHaveURL(new RegExp(`/${path}$`));
-    await page.locator("header a", { hasText: "לדף הבית" }).click();
+    await page.locator("header a.logo").click();
     await expect(page.locator(".hero")).toBeVisible();
   }
 });
@@ -44,4 +20,19 @@ test("unknown path returns 404 with a way home", async ({ page }) => {
   expect(res.status()).toBe(404);
   await expect(page.locator("h1")).toHaveCount(1);
   await expect(page.locator('a[href="/"]').first()).toBeVisible();
+});
+
+test("the 404 page uses the shared header and footer, and its links work from any depth", async ({ page, request }) => {
+  const problems = [];
+  page.on("response", (r) => { if (r.status() >= 400 && !r.url().includes("/deep/")) problems.push(`HTTP ${r.status()}: ${r.url()}`); });
+  const res = await page.goto("/deep/er/still/");
+  expect(res.status()).toBe(404);
+  await expect(page.locator("header a.logo")).toHaveAttribute("href", "/");
+  await expect(page.locator("header #menu a")).toHaveCount(5);
+  await expect(page.locator("footer .foot-legal nav a")).toHaveCount(3);
+  const hrefs = await page.locator("header a[href], footer a[href]").evaluateAll((as) => as.map((a) => a.getAttribute("href")).filter((h) => h.startsWith("/")));
+  expect(hrefs.length).toBeGreaterThan(5);
+  for (const h of new Set(hrefs)) expect((await request.get(h.split("#")[0])).status(), h).toBe(200);
+  expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily), "the shared stylesheet loaded").toMatch(/Noto Sans Hebrew/);
+  expect(problems, problems.join("\n")).toEqual([]);
 });

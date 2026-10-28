@@ -12,10 +12,10 @@
   "onceWeeklyPlans": "במנוי חודשי בלבד",
   "cancellationFee": "5% מסכום העסקה או 100 ₪, הנמוך מביניהם",
   "retention": "כל עוד הילד לומד אצלנו ועוד שנה אחרי שסיים",
-  "processors": "WhatsApp, Zoom ו-Google (Workspace ו-Drive)",
+  "processors": "Google, WhatsApp ו-Zoom, וכלי ניהול, אוטומציה ובינה מלאכותית שמסייעים לנו לטפל בפניות",
   "accessibilityContact": "עתיי דעדוש",
   "accessibilityReplyDays": "7",
-  "accessibilityTested": "באוקטובר 2026 בדקנו את כל עמודי האתר בכלי axe לפי WCAG 2.1 ברמה AA, במצב בהיר ובמצב כהה, בדפדפני Chrome ו-Safari, בטלפון, בטאבלט ובמחשב, כולל ניווט במקלדת והפחתת תנועה.",
+  "accessibilityTested": "באוקטובר 2026 נבדק האתר בכלי axe לפי WCAG 2.1 ברמה AA, במצב בהיר וכהה, בדפדפני Chromium ו-WebKit (המנוע של Safari), בגדלי מסך של טלפון, טאבלט ומחשב, ובבדיקת מקלדת.",
   "studentsAsOf": "אוקטובר 2026",
   "updated": "27/10/2026"
 }

@@ -4,6 +4,11 @@
       "staticDistDir": "./dist",
       "url": [
         "http://localhost/index.html",
+        "http://localhost/method/index.html",
+        "http://localhost/teachers/index.html",
+        "http://localhost/faq/index.html",
+        "http://localhost/teach/index.html",
+        "http://localhost/contact/index.html",
         "http://localhost/terms/index.html",
         "http://localhost/privacy/index.html",
         "http://localhost/accessibility/index.html"

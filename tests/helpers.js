@@ -5,11 +5,24 @@ import { fileURLToPath } from "node:url";
 
 export const PHONE = "972559897869";
 export const WA_PREFIX = `https://wa.me/${PHONE}?text=`;
-// .wa-bar is only styled inside @media (max-width: 860px); tablet 768 is in that range too.
-export const BAR_MAX_WIDTH = 860;
 export const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
 
-export const isNarrow = (page) => page.viewportSize().width <= BAR_MAX_WIDTH;
+export const CONTENT = ["/", "/method/", "/teachers/", "/faq/", "/teach/", "/contact/"];
+export const LEGAL = ["/terms/", "/privacy/", "/accessibility/"];
+export const ALL = [...CONTENT, ...LEGAL];
+export const NAV = [["איך זה עובד", "method/"], ["המורים", "teachers/"], ["שאלות", "faq/"], ["ללמד איתנו", "teach/"], ["צרו קשר", "contact/"]];
+// WhatsApp is the only way to leave a message (no form). Every page: the header link and two footer links (teacher, general).
+// Plus: the home hero and closing box, the closing button of method, teachers, faq and teach, and the two choices on contact.
+export const WA_COUNT = { "/": 5, "/method/": 4, "/teachers/": 4, "/faq/": 4, "/teach/": 4, "/contact/": 5, other: 3 };
+// Where an a.wa may sit, besides the header and the footer.
+export const WA_PLACES = { "/": [".hero", "#contact"], "/method/": [".next"], "/teachers/": [".next"], "/faq/": [".next"], "/teach/": ["#apply"], "/contact/": ["#write .wa-choices"] };
+export const SHARE_COUNT = { "/": 1, "/contact/": 1 }; // every other page: 0
+
+/** Load a page and wait for the web fonts (wrapping depends on them). */
+export async function gotoPage(page, path) {
+  await page.goto(path);
+  await page.evaluate(() => document.fonts.ready.then(() => true));
+}
 
 // WebKit on macOS follows Safari's default: plain Tab skips links, Option+Tab reaches every focusable element.
 export const tabKey = (browserName) => (browserName === "webkit" && process.platform === "darwin" ? "Alt+Tab" : "Tab");
