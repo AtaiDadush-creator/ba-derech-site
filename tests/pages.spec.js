@@ -28,7 +28,7 @@ test("the 404 page uses the shared header and footer, and its links work from an
   const res = await page.goto("/deep/er/still/");
   expect(res.status()).toBe(404);
   await expect(page.locator("header a.logo")).toHaveAttribute("href", "/");
-  await expect(page.locator("header #menu a")).toHaveCount(6);
+  await expect(page.locator("header #menu a")).toHaveCount(5);
   await expect(page.locator("footer .foot-legal nav a")).toHaveCount(3);
   const hrefs = await page.locator("header a[href], footer a[href]").evaluateAll((as) => as.map((a) => a.getAttribute("href")).filter((h) => h.startsWith("/")));
   expect(hrefs.length).toBeGreaterThan(5);
