@@ -1,10 +1,9 @@
 # ba-derech.com
 
-The brand site of בדרך הנכונה: small-group math lessons on Zoom for grades ו׳ to ט׳, for parents and for teachers. Static HTML, CSS and JavaScript, published with GitHub Pages. Contact links open WhatsApp with a prefilled message; the share link (data-share) opens WhatsApp with no number.
+The brand site of בדרך הנכונה: small-group math lessons on Zoom for grades ו׳ to ט׳, for parents and for teachers. Static HTML, CSS and JavaScript, published with GitHub Pages. There is no form (owner's decision): every contact link opens WhatsApp with a prefilled message, or email; the share link (data-share) opens WhatsApp with no number. People who write in get replies only, never marketing.
 
 - Plan and decisions (Hebrew): [docs/PLAN.md](docs/PLAN.md)
 - Waiting on the owner: [docs/OWNER-TODO.md](docs/OWNER-TODO.md)
-- The contact form's Apps Script and how to deploy it (Hebrew): [docs/LEADS-SETUP.md](docs/LEADS-SETUP.md), code in `tools/leads-apps-script/Code.gs`
 
 ## Work on it
 
@@ -31,7 +30,7 @@ A quote (`testimonials.json`):
   - A teacher quote has no credential, rank, years, pay or number (מוסמך, תואר, בוגר, מומחה, מצטיין, הטוב, שנות, שכר, הכנסה, מרוויח, any digit).
 - The label is fixed, not per item: every parent quote shows "הורה לתלמיד או לתלמידה בכיתות ו׳ עד ט׳", every teacher quote "מורה בבדרך הנכונה". An old `who` field is ignored.
 - `date`: `YYYY-MM` of the message, not in the future. Shown as the year only.
-- `source`: `whatsapp` or `email`. Shown as "בוואטסאפ" or "במייל". Never the site form: a form lead gets replies only.
+- `source`: `whatsapp` or `email`. Shown as "בוואטסאפ" or "במייל".
 - `consent`: `true`. `consentDate`: the day of the written consent, `YYYY-MM-DD`, not in the future.
 - `shortened`: `true` or `false`. If `true`, "(בקיצור)" shows next to the year.
 - `rewarded`: `true` or `false`, true for any discount, free lesson, gift or draw given for the quote. If `true`, `rewardNote` (5 to 80 characters) is required and shown next to the quote.
