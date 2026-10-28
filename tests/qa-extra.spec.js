@@ -210,7 +210,7 @@ const parent = (n, extra = {}) => ({ ref: `T0${n}`, audience: "parent", quote: `
 const tquote = (n, extra = {}) => ({ ...parent(n), ref: `T1${n}`, audience: "teacher", ...extra });
 const teacher = (n, extra = {}) => ({ ref: `M0${n}`, name: ["דנה", "רון", "מיכל", "יעל"][n - 1], role: "מורה למתמטיקה", grades: ["ז", "ח", "ט"], line: `טקסט בדיקה ${LETTER[n - 1]}: אוהבת לראות ילד שמבין סוף סוף שברים.`, consent: true, ...extra });
 const some = (f, n) => Array.from({ length: n }, (_, i) => f(i + 1));
-const PAGES = ["index.html", "method/index.html", "teachers/index.html", "faq/index.html", "teach/index.html", "contact/index.html", "terms/index.html", "privacy/index.html", "accessibility/index.html"];
+const PAGES = ["index.html", "about/index.html", "method/index.html", "teachers/index.html", "faq/index.html", "teach/index.html", "contact/index.html", "terms/index.html", "privacy/index.html", "accessibility/index.html"];
 
 // raw: { t, m } as verbatim file text, null to leave the file out; otherwise t and m are item lists.
 function build({ t = [], m = [], raw = {}, cwd = process.cwd(), photoFiles = [] } = {}) {
