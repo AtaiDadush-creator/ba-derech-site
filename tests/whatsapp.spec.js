@@ -13,7 +13,7 @@ for (const path of ALL) {
         target: a.getAttribute("target"),
         rel: a.getAttribute("rel") || "",
       })));
-    expect(links.length, "number of WhatsApp links").toBe(WA_COUNT[path] ?? 2);
+    expect(links.length, "number of WhatsApp links").toBe(WA_COUNT[path] ?? WA_COUNT.other);
     test.info().annotations.push({ type: "wa-links", description: String(links.length) });
 
     for (const l of links) {

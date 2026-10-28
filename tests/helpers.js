@@ -11,8 +11,11 @@ export const CONTENT = ["/", "/method/", "/teachers/", "/faq/", "/teach/", "/con
 export const LEGAL = ["/terms/", "/privacy/", "/accessibility/"];
 export const ALL = [...CONTENT, ...LEGAL];
 export const NAV = [["איך זה עובד", "method/"], ["המורים", "teachers/"], ["שאלות", "faq/"], ["ללמד איתנו", "teach/"], ["צרו קשר", "contact/"]];
-// Where WhatsApp may appear, per page (owner's decision): header and footer everywhere, plus the home hero and the contact page.
-export const WA_COUNT = { "/": 3, "/contact/": 4 }; // every other page: 2
+// WhatsApp is the only way to leave a message (no form). Every page: the header link and two footer links (teacher, general).
+// Plus: the home hero and closing box, the closing button of method, teachers, faq and teach, and the two choices on contact.
+export const WA_COUNT = { "/": 5, "/method/": 4, "/teachers/": 4, "/faq/": 4, "/teach/": 4, "/contact/": 5, other: 3 };
+// Where an a.wa may sit, besides the header and the footer.
+export const WA_PLACES = { "/": [".hero", "#contact"], "/method/": [".next"], "/teachers/": [".next"], "/faq/": [".next"], "/teach/": ["#apply"], "/contact/": ["#write .wa-choices"] };
 export const SHARE_COUNT = { "/": 1, "/contact/": 1 }; // every other page: 0
 
 /** Load a page and wait for the web fonts (wrapping depends on them). */

@@ -1,10 +1,10 @@
-// 11. The brand-site goal: no prices and no "free" claims, no phone bar, WhatsApp only where the owner said
-// (header and footer everywhere, plus the home hero and the contact page), one share link on the home and contact pages,
+// 11. The brand-site goal: no prices and no "free" claims, no phone bar, no form (WhatsApp is the way to write in),
+// WhatsApp links only in their agreed places (helpers WA_PLACES), one share link on the home and contact pages,
 // and contact boxes that hold at 320 and 390 wide.
 // Tests target structure (ids, classes, roles). Hebrew copy is only checked for the price and "בחינם" rule.
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { ALL, PHONE, SHARE_COUNT, WA_COUNT, WA_PREFIX, builtHtml, gotoPage } from "./helpers.js";
+import { ALL, PHONE, SHARE_COUNT, WA_COUNT, WA_PLACES, WA_PREFIX, builtHtml, gotoPage } from "./helpers.js";
 
 const SHARE_PREFIX = "https://wa.me/?text=";
 const OWNER = JSON.parse(readFileSync(new URL("../src/owner.json", import.meta.url), "utf8"));
@@ -96,19 +96,19 @@ test.describe("no prices, no free claims", () => {
   });
 });
 
-// 2. WhatsApp only where the owner said: header and footer on every page, the hero on the home page, #lead on the contact page.
+// 2. WhatsApp only where agreed: header and footer on every page, plus the places in helpers WA_PLACES.
 test.describe("WhatsApp only where the owner said", () => {
   for (const path of ALL) {
     test(`${path}: the number of a.wa and a.share, and where they sit`, async ({ page }) => {
       await page.goto(path);
-      await expect(page.locator("a.wa")).toHaveCount(WA_COUNT[path] ?? 2);
+      await expect(page.locator("a.wa")).toHaveCount(WA_COUNT[path] ?? WA_COUNT.other);
       await expect(page.locator("a.share")).toHaveCount(SHARE_COUNT[path] ?? 0);
       await expect(page.locator(".wa:not(a), .share:not(a)"), "wa/share classes only on links").toHaveCount(0);
-      const misplaced = await page.locator("a.wa").evaluateAll((els, p) => {
-        const allowed = ["header", "footer"].concat(p === "/" ? [".hero"] : [], p === "/contact/" ? ["#lead"] : []);
+      const misplaced = await page.locator("a.wa").evaluateAll((els, places) => {
+        const allowed = ["header", "footer"].concat(places);
         return els.filter((a) => !allowed.some((sel) => a.closest(sel))).map((a) => a.outerHTML.slice(0, 80));
-      }, path);
-      expect(misplaced, "a.wa outside header, footer, the home hero or #lead").toEqual([]);
+      }, WA_PLACES[path] || []);
+      expect(misplaced, "a.wa outside the header, the footer and the agreed places").toEqual([]);
       const pinned = await page.locator("a.wa").evaluateAll((els) =>
         els.filter((a) => ["fixed", "sticky"].includes(getComputedStyle(a).position)).map((a) => a.outerHTML.slice(0, 80)));
       expect(pinned, "a.wa with position fixed or sticky").toEqual([]);
@@ -132,7 +132,7 @@ test.describe("WhatsApp only where the owner said", () => {
 // 3. The contact boxes at 320 and 390: nothing overflows, every link has a usable tap target.
 const BOXES = [
   { path: "/", box: "#contact .final-box", mail: 0 },
-  { path: "/contact/", box: "#lead .contact-side", mail: 1 },
+  { path: "/contact/", box: "#write", mail: 1 },
 ];
 for (const { path, box: sel, mail } of BOXES) {
   for (const width of [320, 390]) {

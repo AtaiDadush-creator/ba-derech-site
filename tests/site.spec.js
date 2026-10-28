@@ -39,7 +39,7 @@ for (const path of ALL) {
     await expect(page.locator("header a.logo")).toHaveAttribute("href", path === "/" ? "./" : "../");
     await expect(page.locator("header a.wa")).toHaveCount(1);
     await expect(page.locator("footer .foot-h")).toHaveText(["הורים", "מורים", "קשר"]);
-    await expect(page.locator("footer a.wa")).toHaveCount(1);
+    await expect(page.locator("footer a.wa"), "the teacher link and the general WhatsApp link").toHaveCount(2);
     await expect(page.locator(".foot-legal nav a")).toHaveCount(3);
   });
 }
@@ -85,11 +85,24 @@ test("phone menu: closed at first, opens and closes, Escape returns focus; on de
   await expect(btn).toHaveAttribute("aria-expanded", "false");
 });
 
-test("if main.js does not load: the phone menu still works, and the contact page says the form needs JavaScript", async ({ page }) => {
+test("no form anywhere: no form, field or link to a form; the contact page offers two WhatsApp choices", async ({ page }) => {
+  for (const path of ALL) {
+    await page.goto(path);
+    await expect(page.locator("form, input, textarea, select"), `${path}: form controls`).toHaveCount(0);
+    expect(await page.locator("a[href]").evaluateAll((as) => as.map((a) => a.getAttribute("href")).filter((h) => /#lead|role=teacher/.test(h))), `${path}: links to the old form`).toEqual([]);
+  }
+  await page.goto("/contact/");
+  const choices = page.locator("#write .wa-choices a.wa");
+  await expect(choices).toHaveCount(2);
+  for (const a of await choices.all()) {
+    await expect(a).toBeVisible();
+    expect((await a.boundingBox()).height, "a real button, easy to tap").toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("if main.js does not load: the phone menu still works", async ({ page }) => {
   await page.route("**/main.js", (route) => route.abort());
   await gotoPage(page, "/contact/");
-  await expect(page.locator(".f-nojs")).toBeVisible();
-  await expect(page.locator("#lead-form")).toBeHidden();
   if (page.viewportSize().width > 860) {
     await expect(page.locator("#menu a").first()).toBeVisible();
     return;

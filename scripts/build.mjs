@@ -6,7 +6,7 @@
 // - turns each data-share message into a WhatsApp share link with no number (the visitor picks the recipient),
 // - renders quotes (src/testimonials.json) and teacher cards (src/teachers.json) into <!--#if key--> blocks,
 //   drops a block and every link inside such markers when it has fewer than 3 approved items, and fails on a doubtful item,
-// - fills {{leadsEndpoint}} (empty = the form opens WhatsApp), {{home}}, and aria-current from data-route,
+// - fills {{home}}, and aria-current from data-route,
 // - adds noindex until the real domain is set (src/CNAME), points share previews at the preview address meanwhile,
 //   and refuses a real-domain build with missing facts,
 // - fails on known content problems.
@@ -24,18 +24,6 @@ const missing = new Set();
 const owner = JSON.parse(await readFile(join(SRC, "owner.json"), "utf8"));
 const live = await access(join(SRC, "CNAME")).then(() => true, () => false);
 const PREVIEW = "https://ataidadush-creator.github.io/ba-derech-site/";
-// The form endpoint is optional: null means the form opens WhatsApp with the details (not a missing fact).
-// A Workspace account may be given the /a/macros/<domain>/ form of the same URL.
-const ENDPOINT_RE = /^https:\/\/script\.google\.com\/(?:a\/macros\/[\w.-]+|macros)\/s\/[\w-]{20,}\/exec$/;
-const endpoint = (() => {
-  const v = owner.leadsEndpoint;
-  if (v === null || v === undefined || v === "") return "";
-  if (typeof v !== "string" || !ENDPOINT_RE.test(v)) {
-    problems.push(`owner.json leadsEndpoint must be an Apps Script web app URL ending in /exec, or null: ${v}`);
-    return "";
-  }
-  return v;
-})();
 
 // Hebrew placeholder shown on previews while a fact is missing.
 const LABELS = {
@@ -117,7 +105,7 @@ for (const f of await readdir(join(SRC, "_partials")).catch(() => [])) {
 // The repo is public and git keeps history: these files hold only what may appear on the site.
 // Names, screenshots and the written consent stay in the owner's private sheet, by ref.
 const MIN_ITEMS = 3;
-// No "form" source: a form lead gets replies only, so its words are not used as a quote.
+// Quotes come from WhatsApp or email only.
 const SOURCES = { whatsapp: "בוואטסאפ", email: "במייל" };
 // One fixed label per audience, shown with the year only: a gender, a grade or a month could identify a child.
 // An old per-item "who" is accepted and ignored.
@@ -289,7 +277,6 @@ for (const file of await walk(DIST)) {
   html = html
     .replace(/\{\{base\}\}/g, base)
     .replace(/\{\{home\}\}/g, base || "./")
-    .replace(/\{\{leadsEndpoint\}\}/g, () => endpoint)
     .replace(/\{\{owner:(\w+)\}\}/g, (m, key) => fact(key))
     .replace(/\{\{(vat)\}\}/g, (m, name) => special(name))
     .replace(/ data-route="([^"]*)"/g, (m, r) => (r === route ? ' aria-current="page"' : ""));
@@ -311,5 +298,5 @@ if (problems.length) {
   console.error("Build failed:\n- " + problems.join("\n- "));
   process.exit(1);
 }
-console.log(`Data: ${BLOCKS["voices-parent"].length} parent quotes, ${BLOCKS["voices-teacher"].length} teacher quotes, ${BLOCKS.team.length} teacher cards (each block shows at ${MIN_ITEMS} or more). Form: ${endpoint ? "Apps Script" : "WhatsApp fallback"}.`);
+console.log(`Data: ${BLOCKS["voices-parent"].length} parent quotes, ${BLOCKS["voices-teacher"].length} teacher quotes, ${BLOCKS.team.length} teacher cards (each block shows at ${MIN_ITEMS} or more).`);
 console.log(`Built dist/ (${live ? "real domain" : "preview, noindex"})`);
