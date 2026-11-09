@@ -4,7 +4,7 @@
 import { test, expect } from "@playwright/test";
 import { gotoPage, scrollThrough } from "./helpers.js";
 
-const VIDEOS = { "/": ["parent-1", "parent-2", "service-1", "service-2", "service-3", "atai-story"] };
+const VIDEOS = { "/": ["parent-1", "parent-2", "atai-method", "atai-story"] };
 
 for (const [path, names] of Object.entries(VIDEOS)) {
   test(`${path}: videos load only on play, with poster, controls and a caption`, async ({ page, browserName }) => {
