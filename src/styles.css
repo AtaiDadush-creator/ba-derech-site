@@ -421,6 +421,25 @@ img { display: block; max-width: 100%; }
 .voice figcaption b { font-size: var(--t-body); font-weight: 700; }
 .voices-note, .team-note { margin-top: 24px; font-size: var(--t-small); color: var(--ink-2); max-width: 60ch; }
 
+/* ---------- Video rows (parents on home, Atai on teach) and WhatsApp screenshots (names hidden in the images) ---------- */
+.reel { padding-top: var(--gap-section); }
+.reel-head { display: grid; gap: 22px; margin-bottom: 48px; }
+.reel-head h2 { font-size: var(--t-display); }
+.reel-head p { font-size: var(--t-lead); line-height: 1.45; max-width: 46ch; }
+.clips { display: grid; grid-auto-flow: column; grid-auto-columns: min(78vw, 340px); justify-content: start; gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding-bottom: 12px; }
+/* Wide screens: the videos sit side by side and wrap, no sideways scrolling with a mouse. */
+@media (min-width: 861px) { .clips { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(220px, 300px)); overflow: visible; padding-bottom: 0; } }
+.clip { margin: 0; scroll-snap-align: start; display: grid; gap: 14px; align-content: start; }
+.clip video { display: block; width: 100%; height: auto; aspect-ratio: 9 / 16; background: var(--fix-navy); border-start-start-radius: 48px; }
+.clip figcaption { display: grid; gap: 2px; }
+.clip figcaption b { font-size: 1.25rem; font-weight: 700; line-height: 1.3; }
+.clip figcaption span { font-size: var(--t-small); color: var(--ink-2); }
+.shots-head { font-size: var(--t-head); font-weight: 800; font-stretch: 85%; line-height: 1.1; margin: 72px 0 28px; }
+.shots { list-style: none; margin: 0; padding: 0; columns: 3 260px; column-gap: 20px; }
+.shots li { break-inside: avoid; margin-bottom: 20px; }
+.shots img { width: 100%; height: auto; background: #0B141A; border-start-start-radius: 28px; }
+.reel .voices-note { margin-top: 8px; }
+
 /* ---------- Teacher cards: only with each teacher's consent ---------- */
 .team { padding-block: 0 var(--gap-section); }
 .team h2 { font-size: var(--t-display); margin-bottom: 48px; }
@@ -495,6 +514,12 @@ img { display: block; max-width: 100%; }
   .page-head h1 { font-size: 13vw; }
   .fit h2 { font-size: 13vw; margin-bottom: 32px; }
   .voices h2, .team h2 { font-size: 13vw; margin-bottom: 32px; }
+  .reel-head { margin-bottom: 32px; }
+  .reel-head h2 { font-size: 13vw; }
+  .shots-head { margin-top: 56px; }
+  .shots { columns: auto; display: grid; grid-auto-flow: column; grid-auto-columns: min(78vw, 340px); align-items: start; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding-bottom: 12px; }
+  .shots li { margin: 0; scroll-snap-align: start; }
+  .reel .voices-note { margin-top: 16px; }
   .contact { display: block; }
   .wa-box {
     margin-left: calc(-1 * max(var(--m), env(safe-area-inset-left, 0px)));

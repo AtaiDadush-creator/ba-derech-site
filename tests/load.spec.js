@@ -1,12 +1,12 @@
 // 1-2. Clean load (console, network, font, images) and no horizontal overflow at any project size, on every content page.
 import { test, expect } from "@playwright/test";
-import { CONTENT, gotoPage, scrollThrough } from "./helpers.js";
+import { CONTENT, browserNoise, gotoPage, scrollThrough } from "./helpers.js";
 
 for (const path of CONTENT) {
   test(`${path} loads with no console errors or failed requests; font and images load`, async ({ page }) => {
     const problems = [];
     const fonts = [];
-    page.on("console", (m) => { if (m.type() === "error") problems.push(`console error: ${m.text()}`); });
+    page.on("console", (m) => { if (m.type() === "error" && !browserNoise(m.text())) problems.push(`console error: ${m.text()}`); });
     page.on("pageerror", (e) => problems.push(`page error: ${e.message}`));
     page.on("requestfailed", (r) => problems.push(`request failed: ${r.url()} (${r.failure()?.errorText})`));
     page.on("response", (r) => {

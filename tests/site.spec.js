@@ -2,14 +2,14 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFileSync } from "node:fs";
-import { ALL, CONTENT, NAV, gotoPage, scrollThrough } from "./helpers.js";
+import { ALL, CONTENT, NAV, browserNoise, gotoPage, scrollThrough } from "./helpers.js";
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 for (const path of ALL) {
   test(`${path}: clean load, lang and dir, one h1, axe light and dark, no overflow`, async ({ page }) => {
     const problems = [];
-    page.on("console", (m) => { if (m.type() === "error") problems.push(`console error: ${m.text()}`); });
+    page.on("console", (m) => { if (m.type() === "error" && !browserNoise(m.text())) problems.push(`console error: ${m.text()}`); });
     page.on("pageerror", (e) => problems.push(`page error: ${e.message}`));
     page.on("requestfailed", (r) => problems.push(`request failed: ${r.url()}`));
     page.on("response", (r) => { if (r.status() >= 400) problems.push(`HTTP ${r.status()}: ${r.url()}`); });

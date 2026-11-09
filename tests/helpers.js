@@ -7,6 +7,10 @@ export const PHONE = "972559897869";
 export const WA_PREFIX = `https://wa.me/${PHONE}?text=`;
 export const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
 
+// The WebKit build Playwright ships for macOS logs this from its own native video controls (their icons are missing
+// from the test browser). Safari does not. It is the browser, not the page, so it is the one console error we skip.
+export const browserNoise = (text) => /^Button failed to load, iconName = [\w-]+-placard\b/.test(text);
+
 export const CONTENT = ["/", "/method/", "/teachers/", "/faq/", "/teach/", "/contact/"];
 export const LEGAL = ["/terms/", "/privacy/", "/accessibility/"];
 export const ALL = [...CONTENT, ...LEGAL];
@@ -51,7 +55,7 @@ export async function gotoHome(page) {
 }
 
 /**
- * Scroll top to bottom in viewport steps (triggers lazy images and scroll-driven styles),
+ * Scroll top to bottom in viewport steps (triggers lazy images and scroll-driven styles) and along every swipe strip,
  * then back to the top. Returns the worst horizontal overflow seen on the root element.
  */
 export async function scrollThrough(page) {
@@ -74,6 +78,16 @@ export async function scrollThrough(page) {
     window.scrollTo(0, html.scrollHeight);
     await frame();
     measure(html.scrollHeight);
+    // Swipe strips (videos, screenshots on phones): bring every item into view once, so lazy images along the strip load too.
+    for (const strip of document.querySelectorAll("body *")) {
+      if (!/(auto|scroll)/.test(getComputedStyle(strip).overflowX) || strip.scrollWidth <= strip.clientWidth + 1) continue;
+      for (const item of strip.children) {
+        item.scrollIntoView({ block: "nearest", inline: "nearest" });
+        await frame();
+        measure(window.scrollY);
+      }
+      strip.scrollTo({ left: 0 });
+    }
     window.scrollTo(0, 0);
     await frame();
     html.style.scrollBehavior = prev;
