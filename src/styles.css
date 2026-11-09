@@ -423,12 +423,12 @@ img { display: block; max-width: 100%; }
 
 /* ---------- Video rows (parents on home, Atai on teach) and WhatsApp screenshots (names hidden in the images) ---------- */
 .reel { padding-top: var(--gap-section); }
-.route + .reel, .voices + .reel { padding-top: 0; }
-#atai { padding-bottom: var(--gap-section); }
 .reel-head { display: grid; gap: 22px; margin-bottom: 48px; }
 .reel-head h2 { font-size: var(--t-display); }
 .reel-head p { font-size: var(--t-lead); line-height: 1.45; max-width: 46ch; }
 .clips { display: grid; grid-auto-flow: column; grid-auto-columns: min(78vw, 340px); justify-content: start; gap: 20px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding-bottom: 12px; }
+/* Wide screens: the videos sit side by side and wrap, no sideways scrolling with a mouse. */
+@media (min-width: 861px) { .clips { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(220px, 300px)); overflow: visible; padding-bottom: 0; } }
 .clip { margin: 0; scroll-snap-align: start; display: grid; gap: 14px; align-content: start; }
 .clip video { display: block; width: 100%; height: auto; aspect-ratio: 9 / 16; background: var(--fix-navy); border-start-start-radius: 48px; }
 .clip figcaption { display: grid; gap: 2px; }
@@ -439,11 +439,6 @@ img { display: block; max-width: 100%; }
 .shots li { break-inside: avoid; margin-bottom: 20px; }
 .shots img { width: 100%; height: auto; background: #0B141A; border-start-start-radius: 28px; }
 .reel .voices-note { margin-top: 8px; }
-/* "Not just a private tutor": the statement, and Atai's story beside it. */
-.statement-wrap { display: grid; grid-template-columns: minmax(0, 1fr) min(32%, 320px); column-gap: clamp(32px, 5vw, 80px); align-items: start; }
-.statement-wrap .not-tutor-h { grid-column: 1 / -1; }
-.statement-wrap .statement { grid-column: 1; }
-.story { grid-column: 2; grid-row: 2; }
 
 /* ---------- Teacher cards: only with each teacher's consent ---------- */
 .team { padding-block: 0 var(--gap-section); }
@@ -525,8 +520,6 @@ img { display: block; max-width: 100%; }
   .shots { columns: auto; display: grid; grid-auto-flow: column; grid-auto-columns: min(78vw, 340px); align-items: start; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding-bottom: 12px; }
   .shots li { margin: 0; scroll-snap-align: start; }
   .reel .voices-note { margin-top: 16px; }
-  .statement-wrap { display: block; }
-  .story { width: min(78vw, 340px); margin-top: 40px; }
   .contact { display: block; }
   .wa-box {
     margin-left: calc(-1 * max(var(--m), env(safe-area-inset-left, 0px)));

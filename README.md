@@ -52,12 +52,12 @@ To remove an item: delete it from the file and push.
 
 ## Videos and WhatsApp screenshots
 
-The owner's decision (9/11/2026): parent videos and WhatsApp screenshots appear on the home page (`#parents`), Atai's story next to `#not-tutor`, and the teacher recruiting videos on the teach page (`#atai`). These are plain HTML, not `testimonials.json`.
+The owner's decision (9/11/2026): parent videos and WhatsApp screenshots appear on the home page (`#parents`), and Atai's four videos (three about the service, one student story) under `#not-tutor`. The teach page has no videos. These are plain HTML, not `testimonials.json`.
 
 - Videos live in `src/assets/video/`: H.264, 720x1280, about 5 to 9 MB each, with a JPEG poster of the same name. Each `<video>` has `controls playsinline preload="none"` and a poster, so nothing heavy loads until someone presses play. The captions are burned into the video.
   `ffmpeg -i in.mp4 -vf scale=720:1280 -c:v libx264 -preset slow -crf 27 -pix_fmt yuv420p -c:a aac -b:a 96k -movflags +faststart out.mp4`
 - Screenshots live in `src/assets/img/parents/` as `wa-N.jpg`, 720 wide. Before a screenshot goes in, every child's and parent's name is blurred (also inside a quoted reply header), and so is any photo inside the chat. Re-encode it so no phone metadata survives. The `alt` is the message in words, without names.
-- No price, "free" offer or a child's face, name or school in any video or image: the text tests cannot see inside them, so check by eye.
+- No price, "free" offer or a child's face, name or school in any video or image: the text tests cannot see inside them, so check by eye and by a transcript. The three service videos (`service-N.mp4`) are cut versions of the 4/11 videos without their price lines and the free trial offer; on a cut, the next burned-in caption is pasted over the last frames of the removed one.
 - To remove one: delete the file and its `<li>` or `<figure>`, and push. Git history keeps old files, so a file goes in only when it may stay public.
 
 ## Publish

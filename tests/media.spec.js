@@ -4,7 +4,7 @@
 import { test, expect } from "@playwright/test";
 import { gotoPage, scrollThrough } from "./helpers.js";
 
-const VIDEOS = { "/": ["parent-1", "parent-2", "atai-story"], "/teach/": ["teach-1", "teach-2", "teach-3"] };
+const VIDEOS = { "/": ["parent-1", "parent-2", "service-1", "service-2", "service-3", "atai-story"] };
 
 for (const [path, names] of Object.entries(VIDEOS)) {
   test(`${path}: videos load only on play, with poster, controls and a caption`, async ({ page }) => {
@@ -37,6 +37,11 @@ for (const [path, names] of Object.entries(VIDEOS)) {
     expect(early, "no video file is fetched before someone presses play").toEqual([]);
   });
 }
+
+test("teach page: no videos (the owner took the recruiting videos down, 9/11)", async ({ page }) => {
+  await gotoPage(page, "/teach/");
+  await expect(page.locator("video")).toHaveCount(0);
+});
 
 test("home: every WhatsApp screenshot has the message in words as its alt", async ({ page }) => {
   await gotoPage(page, "/");
